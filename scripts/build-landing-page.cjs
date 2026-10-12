@@ -1718,4 +1718,19 @@ const html = `<!DOCTYPE html>
 // Compile to root index.html and landing.html
 fs.writeFileSync(path.resolve(__dirname, '../index.html'), html, 'utf8');
 fs.writeFileSync(path.resolve(__dirname, '../landing.html'), html, 'utf8');
-console.log('Successfully compiled landing page with restored calm hero, centered preview tabs, and 5 SVGs animating on scroll!');
+
+// Compile to dist-site for isolated Vercel static deployment
+const distSite = path.resolve(__dirname, '../dist-site');
+if (!fs.existsSync(distSite)) {
+  fs.mkdirSync(distSite, { recursive: true });
+}
+fs.writeFileSync(path.join(distSite, 'index.html'), html, 'utf8');
+fs.writeFileSync(path.join(distSite, 'landing.html'), html, 'utf8');
+
+const srcAssets = path.resolve(__dirname, '../assets');
+const destAssets = path.join(distSite, 'assets');
+if (fs.existsSync(srcAssets)) {
+  fs.cpSync(srcAssets, destAssets, { recursive: true });
+}
+
+console.log('Successfully compiled landing page to root and dist-site for Vercel deployment!');

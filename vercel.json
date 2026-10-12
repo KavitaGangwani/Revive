@@ -1,0 +1,6 @@
+{
+  "buildCommand": "node scripts/build-landing-page.cjs",
+  "outputDirectory": "dist-site",
+  "installCommand": "echo 'Skipping electron dependencies for static landing page'",
+  "framework": null
+}
