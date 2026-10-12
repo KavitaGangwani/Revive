@@ -1,0 +1,25 @@
+:root {
+  --bg: #000000;
+  --bg-deep: #020407;
+  --glow-backdrop: rgba(40, 95, 160, 0.20);
+  --accent: #AFDDFF;
+  --accent-hi: #C8E8FF;
+  --accent-core: #F2FAFF;
+  --text: #FFFFFF;
+  --muted: rgba(255, 255, 255, 0.50);
+  --faint: rgba(255, 255, 255, 0.28);
+  --track: rgba(255, 255, 255, 0.10);
+  --hair: rgba(255, 255, 255, 0.08);
+  --hud-border: rgba(255, 255, 255, 0.12);
+  --surface: rgba(255, 255, 255, 0.025);
+  --accent-wash: rgba(175, 221, 255, 0.08);
+  --accent-line: rgba(175, 221, 255, 0.35);
+  --accent-edge: rgba(175, 221, 255, 0.55);
+
+  --font-label: "JetBrains Mono", ui-monospace, Consolas, monospace;
+  --font-display: "JetBrains Mono", ui-monospace, Consolas, monospace;
+  --font-body: "JetBrains Mono", ui-monospace, Consolas, monospace;
+
+  --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+  --ease-exit: cubic-bezier(0.76, 0, 0.24, 1);
+}

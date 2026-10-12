@@ -1,0 +1,57 @@
+# Still — System & OS Engineering Glossary
+
+- **Always-On-Top Level**: An operating system window management priority setting (such as `'screen-saver'` or `'floating'`) that positions a window above standard windows, taskbars, and modal dialogues.
+- **AudioBufferSourceNode**: A Web Audio API audio-node that plays in-memory pre-decoded pulse-code modulation (PCM) audio samples with sample-accurate start time offsets.
+- **AudioContext**: The primary Web Audio API interface representing an audio-processing graph, managing hardware-synchronized clocks, master gains, and audio output streams.
+- **BrowserWindow**: An Electron main-process class that instantiates and manages an operating system native desktop window hosting a Chromium web page.
+- **Cascading Delete**: A database and storage integrity rule where deleting a parent entity automatically deletes or clears referencing foreign keys in child records to prevent dangling pointers.
+- **Content Security Policy (CSP)**: An HTTP and meta header security mechanism that restricts the origins and types of executable scripts, stylesheets, fonts, and network requests.
+- **Context Isolation (`contextIsolation`)**: An Electron security boundary ensuring preload scripts and internal Electron APIs execute in a separate JavaScript context from the web page DOM.
+- **ContextBridge**: An Electron API that securely exposes safe, selective, uni- or bi-directional APIs from the preload script to the untrusted renderer window.
+- **Controlled Component**: A React design pattern where an input element's form data is handled directly by component state (`value` and `onChange`) rather than the DOM.
+- **CRUD**: An acronym for Create, Read, Update, and Delete—the four fundamental storage operations for managing persistent entities.
+- **Data Validation**: The process of verifying that input data satisfies specific formatting, type, range, and security requirements before it is processed or persisted.
+- **Date.now() Diffing**: A timing calculation technique computing elapsed or remaining duration by taking the delta between current wall-clock epoch milliseconds and fixed target timestamps, avoiding cumulative interval drift.
+- **Debouncing**: A software engineering pattern that postpones the execution of an expensive operation (such as file I/O) until a specified quiet period elapses since the last invocation.
+- **Discriminated Union**: A TypeScript type structure where multiple object interfaces share a common literal discriminator property, enabling type narrowing across variants.
+- **Display Bounds**: The physical pixel rectangle (`x, y, width, height`) identifying an individual monitor's coordinates and dimensions in multi-display desktop setups.
+- **Electron**: A cross-platform desktop application framework combining the Chromium rendering engine and Node.js runtime under a multi-process architecture.
+- **Electron-Store**: A lightweight file-backed persistent key-value configuration storage tailored for Electron applications in the OS `userData` directory.
+- **Electron-Vite**: A fast build tool integrating Vite with Electron that handles distinct bundling configurations for main, preload, and multi-page renderer targets.
+- **File System (FS)**: The operating system abstraction for organizing, storing, naming, retrieving, and persisting byte streams on non-volatile physical block storage.
+- **Finite State Machine (FSM)**: A computational model consisting of a discrete set of defined states, transition rules, and deterministic inputs that prevents invalid or undefined state progressions.
+- **Frameless Window**: A native desktop window initialized without the default operating system title bar, borders, or standard OS window control buttons.
+- **GainNode**: A Web Audio API node used to modulate volume levels and program smooth envelope curves with linear and exponential ramps.
+- **Inter-Process Communication (IPC)**: A set of OS and runtime protocols allowing isolated processes (such as Electron main and renderer) to exchange structured messages and events.
+- **Layout Shift (CLS)**: An unexpected visual movement of rendered UI elements caused by asynchronous layout changes, dynamic insertions, or unreserved dynamic message heights.
+- **Main Process**: The primary Node.js process in Electron that manages the application lifecycle, native OS menus, windows, file system access, and system events.
+- **Monotonic Clock**: A clock source that moves strictly forward at a uniform rate and cannot jump backward due to NTP synchronization or system time adjustments.
+- **Multi-Page Application (MPA)**: A web or desktop architecture where separate user flows (e.g. splash screen vs main application shell) are distinct HTML entry points.
+- **Node Integration (`nodeIntegration`)**: An Electron configuration setting that, when disabled (false), prevents web pages in the renderer from calling Node.js native APIs.
+- **Non-Client Area**: The outer perimeter of an operating system window (title bar, system menu, minimize/close controls, and borders) typically managed directly by the OS window manager.
+- **Operating System Thread**: The smallest unit of execution within an OS process, sharing virtual address space, file descriptors, and memory with sibling threads.
+- **PowerMonitor**: An Electron main-process module that hooks into native operating system power events, such as system sleep, resume, battery state changes, and desktop lock events.
+- **Pre-Decoding**: The process of decompressing and decoding audio files into uncompressed raw PCM buffers in memory before playback begins to eliminate latency.
+- **Preload Script**: A privileged script executed before web page content loads, serving as the bridge and security gatekeeper between renderer and main processes.
+- **Process**: An isolated operating system execution environment containing dedicated private memory, file descriptors, security privileges, and threads.
+- **Renderer Process**: A sandboxed Chromium browser process responsible for rendering web content (HTML/CSS/JS/React) for a specific window.
+- **Sandbox (`sandbox`)**: An OS and Chromium security restriction that prevents renderer processes from directly executing native operating system system calls.
+- **Screen (`screen.getAllDisplays`)**: An Electron native API module that queries all physical monitors, virtual screens, and display bounds attached to the computer.
+- **Single-Instance Lock**: A mechanism using operating system primitives (named mutexes or local sockets) to ensure only one instance of an app executes at a time.
+- **SkipTaskbar (`skipTaskbar`)**: An Electron window property that configures whether the window registers an entry and thumbnail on the operating system desktop taskbar.
+- **Tailwind CSS v4 `@theme`**: A CSS-native token configuration directive in Tailwind v4 that allows replacing default design tokens and establishing custom properties.
+- **Taskbar (`Shell_TrayWnd`)**: The Windows desktop shell application bar displaying running application icons, status notifications, and window switching controls.
+- **Timer Throttling**: An operating system and browser optimization mechanism that reduces the execution frequency of background timers and animation frames to minimize CPU usage and battery consumption.
+- **TypeScript Strict Mode**: A collection of TypeScript compiler flags enforcing strict type checking, preventing implicit `any`, and enforcing null safety.
+- **User Data Directory (`userData`)**: The designated OS-specific per-user file system directory (`%APPDATA%` on Windows) for persistent app state and databases.
+- **Vector Antialiasing (`shape-rendering`)**: The rendering calculation technique used by 2D vector engines to smooth mathematical curve edges at subpixel boundaries.
+- **Vitest**: A high-performance, native ESM unit testing framework deeply integrated with Vite that provides fast parallel test execution and TypeScript support.
+- **Wall Clock**: The real-world clock time (e.g., UTC or local time) subject to daylight saving changes, manual user edits, and NTP network adjustments.
+- **AsarUnpack**: An `electron-builder` configuration directive that extracts designated binary or media files from the virtual ASAR package onto the physical filesystem for direct path reading.
+- **Code Signing**: The cryptographic process of digitally signing executables and installers with a certificate from a trusted Certificate Authority to prove publisher identity and avoid SmartScreen warnings.
+- **Login Items (`setLoginItemSettings`)**: An operating system registry integration in Electron that registers an application with the Windows startup sequence.
+- **NSIS (Nullsoft Scriptable Install System)**: An open-source scriptable installer framework used to create lightweight, customizable Windows setup executables.
+- **ShowInactive (`win.showInactive()`)**: An Electron window method that makes a window visible without shifting active OS input and keyboard focus away from the user's current foreground application.
+- **Webkit App Region (`-webkit-app-region: drag`)**: A proprietary CSS property that turns HTML elements into native OS window drag handles, with `no-drag` for interactive child elements.
+- **Work Area (`display.workArea`)**: The usable desktop bounding rectangle excluding space permanently reserved by the operating system taskbar and docked toolbars.
+- **Z-Order**: The stacking order of overlapping two-dimensional desktop windows along the imaginary Z-axis perpendicular to the display screen.
