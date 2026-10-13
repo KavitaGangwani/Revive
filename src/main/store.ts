@@ -9,19 +9,22 @@ import {
   PersistedSessionState,
   SoundPack,
   PhaseKind,
-  BreathingPhase
+  BreathingPhase,
+  ActivityType
 } from '../shared/types'
 
 export const defaultSettings: AppSettings = {
   nudges: {
     eyeBreak: { enabled: true, intervalMinutes: 20 },
-    drinkWater: { enabled: true, intervalMinutes: 45 }
+    drinkWater: { enabled: true, intervalMinutes: 45 },
+    standaloneInBackground: false
   },
   takeover: {
     allDisplays: true,
     allowSnooze: true,
     snoozeMinutes: 5,
-    restWarning: true
+    restWarning: true,
+    windowMode: 'window'
   },
   sound: {
     chimeAtRestStart: true,
@@ -70,7 +73,11 @@ export function clampAndMergeSettings(
           typeof waterPatch.intervalMinutes === 'number'
             ? clamp(snapToStep(waterPatch.intervalMinutes, 5), 5, 180)
             : current.nudges?.drinkWater?.intervalMinutes ?? 45
-      }
+      },
+      standaloneInBackground:
+        typeof nudgesPatch.standaloneInBackground === 'boolean'
+          ? nudgesPatch.standaloneInBackground
+          : current.nudges?.standaloneInBackground ?? false
     },
     takeover: {
       allDisplays:
@@ -88,7 +95,11 @@ export function clampAndMergeSettings(
       restWarning:
         typeof takeoverPatch.restWarning === 'boolean'
           ? takeoverPatch.restWarning
-          : current.takeover?.restWarning ?? true
+          : current.takeover?.restWarning ?? true,
+      windowMode:
+        takeoverPatch.windowMode === 'fullscreen' || takeoverPatch.windowMode === 'window'
+          ? takeoverPatch.windowMode
+          : current.takeover?.windowMode ?? 'window'
     },
     sound: {
       chimeAtRestStart:
@@ -127,67 +138,28 @@ export const defaultSoundPacks: SoundPack[] = [
     in: 'builtin:singing-bowl-in',
     hold: 'builtin:singing-bowl-hold',
     out: 'builtin:singing-bowl-out'
+  },
+  {
+    id: 'calm-voice',
+    name: 'Calm voice',
+    isBuiltIn: true,
+    in: 'builtin:calm-voice-in',
+    hold: 'builtin:calm-voice-hold',
+    out: 'builtin:calm-voice-out'
   }
 ]
 
-export const initialSeedActivities: Activity[] = [
-  {
-    id: 'b1',
-    type: 'breathing',
-    name: 'Box breathing',
-    title: 'Box breathing',
-    isBuiltIn: true,
-    phases: [
-      { label: 'Inhale', seconds: 4, kind: 'in' },
-      { label: 'Hold', seconds: 4, kind: 'hold' },
-      { label: 'Exhale', seconds: 4, kind: 'out' },
-      { label: 'Hold', seconds: 4, kind: 'hold' }
-    ],
-    createdAt: 1
-  },
-  {
-    id: 'b2',
-    type: 'breathing',
-    name: '4-7-8 breathing',
-    title: '4-7-8 breathing',
-    isBuiltIn: true,
-    phases: [
-      { label: 'Inhale', seconds: 4, kind: 'in' },
-      { label: 'Hold', seconds: 7, kind: 'hold' },
-      { label: 'Exhale', seconds: 8, kind: 'out' }
-    ],
-    createdAt: 2
-  },
-  {
-    id: 'b3',
-    type: 'breathing',
-    name: 'Coherence',
-    title: 'Coherence',
-    isBuiltIn: true,
-    phases: [
-      { label: 'Inhale', seconds: 5, kind: 'in' },
-      { label: 'Exhale', seconds: 5, kind: 'out' }
-    ],
-    createdAt: 3
-  },
-  {
-    id: 'c1',
-    type: 'custom',
-    name: 'Walk outside',
-    title: 'Walk outside',
-    isBuiltIn: false,
-    note: 'Leave the screen. Stretch your legs.',
-    createdAt: 4
-  }
-]
+export const initialSeedActivities: Activity[] = []
+
+import { builtInActivities } from './builtInActivities'
 
 export const defaultLibrary: LibrarySettings = {
-  activities: initialSeedActivities,
+  custom: [],
   soundPacks: defaultSoundPacks,
   defaults: {
     restActivityId: null,
-    breathingSoundPackId: 'soft-tones',
-    breathingSoundVolume: 0.8
+    breathingSoundPackId: null,
+    breathingSoundVolume: 0
   }
 }
 
@@ -211,7 +183,7 @@ const defaultSession: SessionResume = {
 
 let storeInstance: Store<StoreSchema> | null = null
 
-function inferPhaseKind(label: string, index: number, total: number): PhaseKind {
+export function inferPhaseKind(label: string, index: number, total: number): PhaseKind {
   const l = (label || '').toLowerCase()
   if (l.includes('in') || l.includes('inhale')) return 'in'
   if (l.includes('out') || l.includes('ex') || l.includes('exhale')) return 'out'
@@ -219,6 +191,163 @@ function inferPhaseKind(label: string, index: number, total: number): PhaseKind 
   if (index === 0) return 'in'
   if (index === total - 1) return 'out'
   return 'hold'
+}
+
+export function migrateStoredLibrary(rawLibrary: any): { library: LibrarySettings; changed: boolean } {
+  let changed = false
+  if (!rawLibrary || typeof rawLibrary !== 'object') {
+    return {
+      library: {
+        custom: [],
+        defaults: { restActivityId: null, breathingSoundPackId: 'soft-tones', breathingSoundVolume: 0.8 },
+        soundPacks: defaultSoundPacks
+      },
+      changed: true
+    }
+  }
+
+  const sourceActivities = Array.isArray(rawLibrary.custom)
+    ? rawLibrary.custom
+    : Array.isArray(rawLibrary.activities)
+    ? rawLibrary.activities
+    : []
+
+  if (!Array.isArray(rawLibrary.custom) && Array.isArray(rawLibrary.activities)) {
+    changed = true
+  }
+
+  const migratedCustom: Activity[] = []
+
+  for (const raw of sourceActivities) {
+    if (!raw || typeof raw !== 'object') {
+      changed = true
+      continue
+    }
+
+    // Drop any stored record with isBuiltIn: true (built-ins now come from code)
+    if (raw.isBuiltIn || raw.builtIn) {
+      changed = true
+      continue
+    }
+
+    const id = typeof raw.id === 'string' ? raw.id : `c_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`
+    const name = typeof raw.name === 'string' ? raw.name.trim() : typeof raw.title === 'string' ? raw.title.trim() : 'Activity'
+    const note = typeof raw.note === 'string' && raw.note.trim() ? raw.note.trim().slice(0, 120) : undefined
+
+    let type: ActivityType | undefined = undefined
+    let phases: { label: string; seconds: number; kind?: PhaseKind }[] | undefined = undefined
+    let steps: { name: string; seconds: number }[] | undefined = undefined
+    let media: { kind: 'youtube' | 'spotify'; url: string } | undefined = undefined
+
+    if (raw.type === 'breathing') {
+      type = 'breathing'
+      if (Array.isArray(raw.phases) && raw.phases.length > 0) {
+        phases = raw.phases.slice(0, 8).map((p: any, idx: number) => {
+          let label = ''
+          let seconds = 4
+          if (Array.isArray(p)) {
+            changed = true
+            label = String(p[0] || 'Phase').trim().slice(0, 24)
+            seconds = Math.max(1, Math.min(30, Number(p[1]) || 4))
+          } else if (p && typeof p === 'object') {
+            label = String(p.label || 'Phase').trim().slice(0, 24)
+            seconds = Math.max(1, Math.min(30, Number(p.seconds) || 4))
+          }
+          return { label: label || 'Phase', seconds, kind: inferPhaseKind(label, idx, raw.phases.length) }
+        })
+      } else {
+        phases = [{ label: 'Inhale', seconds: 4, kind: 'in' }, { label: 'Exhale', seconds: 6, kind: 'out' }]
+      }
+    } else if (raw.type === 'routine') {
+      type = 'routine'
+      if (Array.isArray(raw.steps) && raw.steps.length > 0) {
+        steps = raw.steps.slice(0, 12).map((s: any) => ({
+          name: String(s.name || s.label || 'Step').trim().slice(0, 24),
+          seconds: Math.max(5, Math.min(300, Number(s.seconds) || 30))
+        }))
+      } else {
+        steps = [{ name: 'Neck rolls', seconds: 30 }, { name: 'Shoulder rolls', seconds: 30 }]
+      }
+    } else if (raw.type === 'custom') {
+      // old type:'custom' -> no type; drop minutes
+      changed = true
+      type = undefined
+    } else if (raw.type === 'youtube' || raw.type === 'spotify') {
+      // old type:'youtube'|'spotify' -> no type, media = { kind, url }
+      changed = true
+      type = undefined
+      media = { kind: raw.type, url: String(raw.url || '') }
+    }
+
+    if (raw.media && typeof raw.media === 'object' && (raw.media.kind === 'youtube' || raw.media.kind === 'spotify')) {
+      media = { kind: raw.media.kind, url: String(raw.media.url || '') }
+    }
+
+    if ('minutes' in raw) {
+      changed = true
+    }
+
+    const activity: Activity = {
+      id,
+      name: name.slice(0, 40),
+      builtIn: false,
+      ...(note ? { note } : {}),
+      ...(type ? { type } : {}),
+      ...(phases ? { phases } : {}),
+      ...(steps ? { steps } : {}),
+      ...(media ? { media } : {})
+    }
+
+    migratedCustom.push(activity)
+  }
+
+  // Handle defaults: if default pointed at one that no longer exists, clear default
+  const rawDefaults = rawLibrary.defaults || {}
+  let restActivityId = typeof rawDefaults.restActivityId === 'string' ? rawDefaults.restActivityId : null
+  const allIds = new Set([...builtInActivities.map((b) => b.id), ...migratedCustom.map((c) => c.id)])
+  if (restActivityId && !allIds.has(restActivityId)) {
+    restActivityId = null
+    changed = true
+  }
+
+  const defaults = {
+    ...rawDefaults,
+    restActivityId,
+    breathingSoundPackId: rawDefaults.breathingSoundPackId ?? null,
+    breathingSoundVolume: typeof rawDefaults.breathingSoundVolume === 'number' ? rawDefaults.breathingSoundVolume : 0
+  }
+
+  const existingPacks = Array.isArray(rawLibrary.soundPacks) && rawLibrary.soundPacks.length > 0
+    ? rawLibrary.soundPacks
+    : []
+  const packMap = new Map<string, SoundPack>()
+  for (const p of defaultSoundPacks) {
+    packMap.set(p.id, p)
+  }
+  for (const p of existingPacks) {
+    packMap.set(p.id, p)
+  }
+  const soundPacks = Array.from(packMap.values())
+
+  return {
+    library: {
+      custom: migratedCustom,
+      defaults,
+      soundPacks
+    },
+    changed
+  }
+}
+
+export function getFullLibrary(): { activities: Activity[]; defaultId?: string } {
+  const store = getStore()
+  const lib = store.get('library')
+  const custom = lib?.custom || []
+  const defaultId = lib?.defaults?.restActivityId || undefined
+  return {
+    activities: [...builtInActivities, ...custom],
+    defaultId
+  }
 }
 
 export function initStore(): Store<StoreSchema> {
@@ -262,69 +391,10 @@ export function initStore(): Store<StoreSchema> {
 
     storeInstance.set('settings', mergedSettings)
 
-    // Validate/migrate library schema
-    const updatedLibrary = storeInstance.get('library') as any
-    if (!updatedLibrary || Array.isArray(updatedLibrary)) {
-      // Migrate from flat array or empty
-      storeInstance.set('library', defaultLibrary)
-    } else if (!updatedLibrary.activities || updatedLibrary.activities.length === 0) {
-      storeInstance.set('library', defaultLibrary)
-    } else {
-      let changed = false
-      // Migration 1: Remove minutes property from all stored activities
-      // Migration 2: Ensure breathing phases have kind property
-      const cleanedActivities = updatedLibrary.activities.map((a: any) => {
-        let act = { ...a }
-        if ('minutes' in act) {
-          changed = true
-          delete act.minutes
-        }
-        if (act.type === 'breathing' && Array.isArray(act.phases)) {
-          const total = act.phases.length
-          const upgradedPhases: BreathingPhase[] = act.phases.map((p: any, idx: number) => {
-            if (!p.kind || (p.kind !== 'in' && p.kind !== 'hold' && p.kind !== 'out')) {
-              changed = true
-              return {
-                ...p,
-                kind: inferPhaseKind(p.label || '', idx, total)
-              }
-            }
-            return p
-          })
-          act.phases = upgradedPhases
-        }
-        return act
-      })
-
-      // Ensure soundPacks exist
-      let soundPacks = updatedLibrary.soundPacks
-      if (!Array.isArray(soundPacks) || soundPacks.length === 0) {
-        soundPacks = defaultSoundPacks
-        changed = true
-      }
-
-      // Ensure defaults include sound settings
-      const currentDefaults = updatedLibrary.defaults || {}
-      const updatedDefaults = {
-        restActivityId: currentDefaults.restActivityId ?? null,
-        breathingSoundPackId: currentDefaults.breathingSoundPackId ?? 'soft-tones',
-        breathingSoundVolume: currentDefaults.breathingSoundVolume ?? 0.8
-      }
-      if (
-        currentDefaults.breathingSoundPackId === undefined ||
-        currentDefaults.breathingSoundVolume === undefined
-      ) {
-        changed = true
-      }
-
-      if (changed) {
-        storeInstance.set('library', {
-          ...updatedLibrary,
-          activities: cleanedActivities,
-          soundPacks,
-          defaults: updatedDefaults
-        })
-      }
+    // Validate/migrate library schema per v2 spec
+    const { library: migratedLib, changed: libChanged } = migrateStoredLibrary(storeInstance.get('library'))
+    if (libChanged || !storeInstance.has('library.custom')) {
+      storeInstance.set('library', migratedLib)
     }
 
     // Ensure prefs exist and default collapsed is true

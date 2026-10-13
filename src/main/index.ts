@@ -2,7 +2,8 @@ import { app, BrowserWindow, ipcMain, powerMonitor, screen, session } from 'elec
 import { promises as fs } from 'fs'
 import { join } from 'path'
 import { runBootSequence } from './boot'
-import { getStore, initStore, clampAndMergeSettings, defaultSoundPacks } from './store'
+import { getStore, initStore, clampAndMergeSettings, defaultSoundPacks, getFullLibrary, inferPhaseKind } from './store'
+import { builtInActivities } from './builtInActivities'
 import { SessionEngine } from './sessionEngine'
 import { TrayManager } from './tray'
 import { OverlayManager } from './overlayManager'
@@ -61,10 +62,11 @@ if (!gotTheLock) {
   }
 
   // Helper to broadcast library changes to all windows
-  const broadcastLibrary = (lib: LibrarySettings): void => {
+  const broadcastLibrary = (): void => {
+    const libPayload = getFullLibrary()
     BrowserWindow.getAllWindows().forEach((win) => {
       if (!win.isDestroyed()) {
-        win.webContents.send(IPC_CHANNELS.LIBRARY_CHANGED, lib)
+        win.webContents.send(IPC_CHANNELS.LIBRARY_CHANGED, libPayload)
       }
     })
   }
@@ -153,11 +155,11 @@ if (!gotTheLock) {
       }
     },
     getDefaultRestActivityId: () => {
-      const lib = store.get('library')
-      return lib?.defaults?.restActivityId ?? null
+      const lib = getFullLibrary()
+      return lib?.defaultId ?? null
     },
     getActivityById: (id: string) => {
-      const lib = store.get('library')
+      const lib = getFullLibrary()
       return lib?.activities?.find((a) => a.id === id)
     }
   })
@@ -243,7 +245,13 @@ if (!gotTheLock) {
 
   ipcMain.on(IPC_CHANNELS.WINDOW_CLOSE, (event) => {
     const win = getEventWindow(event)
-    handleCloseAttempt(win)
+    if (win && !win.isDestroyed()) {
+      if (mainWin && win.id === mainWin.id) {
+        handleCloseAttempt(win)
+      } else {
+        win.close()
+      }
+    }
   })
 
   ipcMain.on(IPC_CHANNELS.WINDOW_SHOW_MAIN, () => {
@@ -283,6 +291,10 @@ if (!gotTheLock) {
 
     if (typeof (patch as any)?.autostart === 'boolean') {
       syncAutostart(Boolean((patch as any).autostart))
+    }
+
+    if (typeof (patch as any)?.miniFocusWindow === 'boolean') {
+      miniWindowManager.setEnabled(Boolean((patch as any).miniFocusWindow))
     }
 
     broadcastSettings(updated)
@@ -379,37 +391,130 @@ if (!gotTheLock) {
 
   // IPC Handlers — Library
   ipcMain.handle(IPC_CHANNELS.LIBRARY_GET, () => {
-    return store.get('library')
+    return getFullLibrary()
   })
 
   ipcMain.handle(IPC_CHANNELS.LIBRARY_GET_ACTIVITIES, () => {
-    const lib = store.get('library')
-    return lib?.activities || []
+    return getFullLibrary().activities
   })
 
-  function validateActivityPayload(
-    rawInput: unknown,
-    forcedType?: ActivityType
-  ): { ok: true; data: { name: string; type: ActivityType; phases?: BreathingPhase[]; url?: string; note?: string } } | { ok: false; error: string } {
+  function validateActivityInput(
+    rawInput: unknown
+  ): { ok: true; data: Omit<Activity, 'id' | 'builtIn'> } | { ok: false; error: string } {
     if (typeof rawInput !== 'object' || rawInput === null) {
-      return { ok: false, error: 'Invalid input format.' }
+      return { ok: false, error: 'Give it a name.' }
     }
     const input = rawInput as any
 
-    const name = typeof input.name === 'string' ? input.name.trim() : ''
-    if (!name) {
-      return { ok: false, error: 'Name is required.' }
-    }
-    if (name.length > 40) {
-      return { ok: false, error: 'Name must be 40 characters or fewer.' }
+    // 1. Name required, trimmed, 1-40. "Give it a name."
+    const name = typeof input.name === 'string' ? input.name.trim() : typeof input.title === 'string' ? input.title.trim() : ''
+    if (!name || name.length === 0 || name.length > 40) {
+      return { ok: false, error: 'Give it a name.' }
     }
 
-    const type = forcedType || input.type
-    if (!['breathing', 'custom', 'youtube', 'spotify'].includes(type)) {
-      return { ok: false, error: 'Invalid activity type.' }
+    // Type: 'breathing' | 'routine' | undefined
+    const type: ActivityType | undefined = (input.type === 'breathing' || input.type === 'routine')
+      ? input.type
+      : undefined
+
+    let phases: { label: string; seconds: number; kind?: PhaseKind }[] | undefined = undefined
+    let steps: { name: string; seconds: number }[] | undefined = undefined
+
+    // 2. Breathing: at least one phase; every phase needs a label (1–24) and 1–30 seconds.
+    if (type === 'breathing') {
+      if (!Array.isArray(input.phases) || input.phases.length < 1 || input.phases.length > 8) {
+        return { ok: false, error: 'Every phase needs a label and 1–30 seconds.' }
+      }
+      phases = []
+      for (let i = 0; i < input.phases.length; i++) {
+        const p = input.phases[i]
+        if (!p || typeof p !== 'object') {
+          return { ok: false, error: 'Every phase needs a label and 1–30 seconds.' }
+        }
+        const label = typeof p.label === 'string' ? p.label.trim() : ''
+        const seconds = Number(p.seconds)
+        if (!label || label.length < 1 || label.length > 24 || !Number.isFinite(seconds) || seconds < 1 || seconds > 30) {
+          return { ok: false, error: 'Every phase needs a label and 1–30 seconds.' }
+        }
+        const kind = (p.kind && ['in', 'hold', 'out'].includes(p.kind))
+          ? p.kind
+          : inferPhaseKind(label, i, input.phases.length)
+        phases.push({
+          label,
+          seconds: Math.round(seconds),
+          kind
+        })
+      }
     }
 
-    let note: string | undefined
+    // 3. Routine: at least one step; every step needs a name (1–24) and 5–300 seconds.
+    if (type === 'routine') {
+      if (!Array.isArray(input.steps) || input.steps.length < 1 || input.steps.length > 12) {
+        return { ok: false, error: 'Every step needs a name and 5–300 seconds.' }
+      }
+      steps = []
+      for (let i = 0; i < input.steps.length; i++) {
+        const s = input.steps[i]
+        if (!s || typeof s !== 'object') {
+          return { ok: false, error: 'Every step needs a name and 5–300 seconds.' }
+        }
+        const stepName = typeof s.name === 'string' ? s.name.trim() : ''
+        const seconds = Number(s.seconds)
+        if (!stepName || stepName.length < 1 || stepName.length > 24 || !Number.isFinite(seconds) || seconds < 5 || seconds > 300) {
+          return { ok: false, error: 'Every step needs a name and 5–300 seconds.' }
+        }
+        steps.push({
+          name: stepName,
+          seconds: Math.round(seconds)
+        })
+      }
+    }
+
+    // 4. Media YouTube / Spotify
+    let media: { kind: 'youtube' | 'spotify'; url: string } | undefined = undefined
+    if (input.media && typeof input.media === 'object' && input.media.kind) {
+      const rawKind = input.media.kind
+      const rawUrl = typeof input.media.url === 'string' ? input.media.url.trim() : ''
+      if (rawKind === 'youtube') {
+        try {
+          const parsed = new URL(rawUrl)
+          const host = parsed.hostname.toLowerCase()
+          const validHost = ['youtube.com', 'www.youtube.com', 'm.youtube.com', 'youtu.be'].includes(host)
+          let hasVideoId = false
+          if (host === 'youtu.be') {
+            hasVideoId = Boolean(parsed.pathname.slice(1).trim())
+          } else {
+            hasVideoId = Boolean(
+              parsed.searchParams.get('v') ||
+              parsed.pathname.startsWith('/embed/') ||
+              parsed.pathname.startsWith('/shorts/')
+            )
+          }
+          if (!validHost || !hasVideoId) {
+            return { ok: false, error: 'Paste a valid YouTube link, or choose None.' }
+          }
+          media = { kind: 'youtube', url: rawUrl }
+        } catch {
+          return { ok: false, error: 'Paste a valid YouTube link, or choose None.' }
+        }
+      } else if (rawKind === 'spotify') {
+        try {
+          const parsed = new URL(rawUrl)
+          const host = parsed.hostname.toLowerCase()
+          const isSpotifyHost = host === 'open.spotify.com'
+          const hasValidPath = /^\/(track|album|playlist|episode|show|artist)\/([a-zA-Z0-9]+)/.test(parsed.pathname)
+          if (!isSpotifyHost || !hasValidPath) {
+            return { ok: false, error: 'Paste a valid Spotify link, or choose None.' }
+          }
+          media = { kind: 'spotify', url: rawUrl }
+        } catch {
+          return { ok: false, error: 'Paste a valid Spotify link, or choose None.' }
+        }
+      }
+    }
+
+    // 5. Note optional, trimmed, max 120.
+    let note: string | undefined = undefined
     if (typeof input.note === 'string') {
       const trimmedNote = input.note.trim()
       if (trimmedNote.length > 120) {
@@ -418,111 +523,43 @@ if (!gotTheLock) {
       note = trimmedNote || undefined
     }
 
-    let phases: BreathingPhase[] | undefined
-    if (type === 'breathing') {
-      if (!Array.isArray(input.phases) || input.phases.length < 2) {
-        return { ok: false, error: 'Breathing patterns must have at least 2 phases.' }
-      }
-      if (input.phases.length > 8) {
-        return { ok: false, error: 'Breathing patterns can have at most 8 phases.' }
-      }
-      const totalPhases = input.phases.length
-      phases = []
-      for (let i = 0; i < totalPhases; i++) {
-        const p = input.phases[i]
-        if (!p || typeof p !== 'object') {
-          return { ok: false, error: 'Invalid phase definition.' }
-        }
-        const label = typeof p.label === 'string' ? p.label.trim() : ''
-        if (!label) {
-          return { ok: false, error: 'Each phase must have a name.' }
-        }
-        const seconds = Number(p.seconds)
-        if (!Number.isFinite(seconds) || seconds < 1 || seconds > 60) {
-          return { ok: false, error: 'Phase duration must be between 1 and 60 seconds.' }
-        }
-        const kind: PhaseKind = (p.kind === 'in' || p.kind === 'hold' || p.kind === 'out')
-          ? p.kind
-          : (i === 0 ? 'in' : i === totalPhases - 1 ? 'out' : 'hold')
-
-        phases.push({
-          label,
-          seconds: Math.round(seconds),
-          kind,
-          soundId: typeof p.soundId === 'string' ? p.soundId : undefined
-        })
-      }
-    }
-
-    let url: string | undefined
-    if (type === 'youtube' || type === 'spotify') {
-      const rawUrl = typeof input.url === 'string' ? input.url.trim() : ''
-      if (!rawUrl) {
-        return { ok: false, error: 'URL is required.' }
-      }
-      if (type === 'youtube') {
-        const ytRegex = /^(https?:\/\/)?(www\.)?(youtube\.com\/(watch\?v=|embed\/|shorts\/)|youtu\.be\/)([a-zA-Z0-9_-]{11})/
-        const match = rawUrl.match(ytRegex)
-        if (!match) {
-          return { ok: false, error: 'Please enter a valid YouTube link.' }
-        }
-        const videoId = match[5]
-        url = `https://www.youtube.com/watch?v=${videoId}`
-      } else if (type === 'spotify') {
-        const spotRegex = /^(https?:\/\/)?(open\.spotify\.com\/(track|playlist|album|episode|show)\/|spotify:(track|playlist|album|episode|show):)([a-zA-Z0-9]+)/
-        const match = rawUrl.match(spotRegex)
-        if (!match) {
-          return { ok: false, error: 'Please enter a valid Spotify link.' }
-        }
-        const mediaType = match[3] || match[4]
-        const mediaId = match[5]
-        url = `https://open.spotify.com/${mediaType}/${mediaId}`
-      }
-    }
-
     return {
       ok: true,
       data: {
         name,
-        type,
-        phases,
-        url,
-        note
+        ...(note ? { note } : {}),
+        ...(type ? { type } : {}),
+        ...(phases ? { phases } : {}),
+        ...(steps ? { steps } : {}),
+        ...(media ? { media } : {})
       }
     }
   }
-
   ipcMain.handle(
     IPC_CHANNELS.LIBRARY_ADD,
     (_event, rawInput: unknown): { ok: true; activity: Activity } | { ok: false; error: string } => {
-      const result = validateActivityPayload(rawInput)
-      if (!result.ok) {
-        return result
+      const validation = validateActivityInput(rawInput)
+      if (!validation.ok) {
+        return validation
       }
-      const { name, type, phases, url, note } = result.data
-      const currentLib = store.get('library')
+
+      const currentLib = store.get('library') || { custom: [], defaults: {} }
+      const currentCustom: Activity[] = Array.isArray(currentLib.custom) ? [...currentLib.custom] : []
 
       const newActivity: Activity = {
-        id: `u_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`,
-        type,
-        name,
-        title: name,
-        isBuiltIn: false,
-        note,
-        phases: type === 'breathing' ? phases : undefined,
-        url: type === 'youtube' || type === 'spotify' ? url : undefined,
-        createdAt: Date.now()
+        id: `c_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`,
+        builtIn: false,
+        ...validation.data
       }
 
-      const updatedActivities = [...currentLib.activities, newActivity]
+      currentCustom.push(newActivity)
       const updatedLib: LibrarySettings = {
         ...currentLib,
-        activities: updatedActivities,
-        defaults: currentLib.defaults || {}
+        custom: currentCustom
       }
 
       store.set('library', updatedLib)
-      broadcastLibrary(updatedLib)
+      broadcastLibrary()
 
       return { ok: true, activity: newActivity }
     }
@@ -532,124 +569,69 @@ if (!gotTheLock) {
     IPC_CHANNELS.LIBRARY_UPDATE,
     (
       _event,
-      payload: { id: unknown; input: unknown }
+      arg1: unknown,
+      arg2?: unknown
     ): { ok: true; activity: Activity } | { ok: false; error: string } => {
-      if (!payload || typeof payload !== 'object') {
-        return { ok: false, error: 'Invalid payload.' }
+      let id: string
+      let rawInput: unknown
+      if (typeof arg1 === 'object' && arg1 !== null && 'id' in arg1) {
+        id = String((arg1 as any).id)
+        rawInput = (arg1 as any).input
+      } else {
+        id = typeof arg1 === 'string' ? arg1 : ''
+        rawInput = arg2
       }
-      const { id, input: rawInput } = payload
-      if (typeof id !== 'string') {
+
+      if (!id) {
         return { ok: false, error: 'Activity ID is required.' }
       }
 
-      const currentLib = store.get('library')
-      const existing = currentLib.activities.find((a) => a.id === id)
-      if (!existing) {
+      // Rejects built-ins with exact error per spec
+      if (builtInActivities.some((b) => b.id === id)) {
+        return { ok: false, error: "Built-in activities can't be edited." }
+      }
+
+      const currentLib = store.get('library') || { custom: [], defaults: {} }
+      const currentCustom: Activity[] = Array.isArray(currentLib.custom) ? [...currentLib.custom] : []
+      const existingIdx = currentCustom.findIndex((a) => a.id === id)
+      if (existingIdx === -1) {
         return { ok: false, error: 'Activity not found.' }
       }
-      if (existing.isBuiltIn) {
-        return { ok: false, error: "Built-in activities can't be edited. Duplicate it instead." }
-      }
 
-      const result = validateActivityPayload(rawInput, existing.type)
-      if (!result.ok) {
-        return result
+      const validation = validateActivityInput(rawInput)
+      if (!validation.ok) {
+        return validation
       }
-      const { name, phases, url, note } = result.data
 
       const updatedActivity: Activity = {
-        id: existing.id,
-        type: existing.type,
-        name,
-        title: name,
-        isBuiltIn: false,
-        note,
-        phases: existing.type === 'breathing' ? phases : undefined,
-        url: existing.type === 'youtube' || existing.type === 'spotify' ? url : undefined,
-        createdAt: existing.createdAt ?? Date.now()
+        ...currentCustom[existingIdx],
+        id,
+        builtIn: false,
+        ...validation.data
       }
 
-      const updatedActivities = currentLib.activities.map((a) => (a.id === id ? updatedActivity : a))
+      currentCustom[existingIdx] = updatedActivity
       const updatedLib: LibrarySettings = {
         ...currentLib,
-        activities: updatedActivities,
-        defaults: currentLib.defaults || {}
+        custom: currentCustom
       }
 
       store.set('library', updatedLib)
-      broadcastLibrary(updatedLib)
+      broadcastLibrary()
 
       return { ok: true, activity: updatedActivity }
     }
   )
 
-  ipcMain.handle(
-    IPC_CHANNELS.LIBRARY_DUPLICATE,
-    (_event, id: unknown): { ok: true; activity: Activity } | { ok: false; error: string } => {
-      if (typeof id !== 'string') {
-        return { ok: false, error: 'Activity not found.' }
-      }
-      const currentLib = store.get('library')
-      const source = currentLib.activities.find((a) => a.id === id)
-      if (!source) {
-        return { ok: false, error: 'Activity not found.' }
-      }
-
-      const existingNames = new Set(currentLib.activities.map((a) => a.name))
-      let copyIndex = 1
-      let copyName = ''
-      while (true) {
-        const suffix = copyIndex === 1 ? ' copy' : ` copy ${copyIndex}`
-        const maxBaseLen = 40 - suffix.length
-        const base = source.name.slice(0, maxBaseLen).trimEnd()
-        const candidate = `${base}${suffix}`
-        if (!existingNames.has(candidate)) {
-          copyName = candidate
-          break
-        }
-        copyIndex++
-      }
-
-      const copyActivity: Activity = {
-        id: `u_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`,
-        type: source.type,
-        name: copyName,
-        title: copyName,
-        isBuiltIn: false,
-        note: source.note,
-        phases: source.phases ? source.phases.map((p) => ({ ...p })) : undefined,
-        url: source.url,
-        createdAt: Date.now()
-      }
-
-      const sourceIndex = currentLib.activities.findIndex((a) => a.id === id)
-      const newActivities = [...currentLib.activities]
-      if (sourceIndex !== -1) {
-        newActivities.splice(sourceIndex + 1, 0, copyActivity)
-      } else {
-        newActivities.push(copyActivity)
-      }
-
-      const updatedLib: LibrarySettings = {
-        ...currentLib,
-        activities: newActivities,
-        defaults: currentLib.defaults || {}
-      }
-
-      store.set('library', updatedLib)
-      broadcastLibrary(updatedLib)
-
-      return { ok: true, activity: copyActivity }
-    }
-  )
-
   ipcMain.handle(IPC_CHANNELS.LIBRARY_DELETE, (_event, id: unknown) => {
     if (typeof id !== 'string') return
-    const currentLib = store.get('library')
-    const toDelete = currentLib.activities.find((a) => a.id === id)
-    if (!toDelete || toDelete.isBuiltIn) return
-
-    const updatedActivities = currentLib.activities.filter((a) => a.id !== id)
+    const isBuiltIn = builtInActivities.some((a) => a.id === id)
+    if (isBuiltIn) {
+      throw new Error("Built-in activities can't be edited.")
+    }
+    const currentLib = store.get('library') || { custom: [], defaults: {} }
+    const currentCustom = Array.isArray(currentLib.custom) ? [...currentLib.custom] : []
+    const updatedCustom = currentCustom.filter((a) => a.id !== id)
 
     let defaultId = currentLib.defaults?.restActivityId
     if (defaultId === id) {
@@ -658,7 +640,7 @@ if (!gotTheLock) {
 
     const updatedLib: LibrarySettings = {
       ...currentLib,
-      activities: updatedActivities,
+      custom: updatedCustom,
       defaults: { ...currentLib.defaults, restActivityId: defaultId }
     }
     store.set('library', updatedLib)
@@ -678,18 +660,18 @@ if (!gotTheLock) {
       store.set('prefs.restActivityIds', updatedSlotIds)
     }
 
-    broadcastLibrary(updatedLib)
+    broadcastLibrary()
   })
 
   ipcMain.handle(IPC_CHANNELS.LIBRARY_SET_DEFAULT, (_event, id: unknown) => {
-    const rawId = typeof id === 'string' ? id : null
-    const currentLib = store.get('library')
+    const rawId = typeof id === 'string' && id.trim() ? id.trim() : null
+    const currentLib = store.get('library') || { custom: [], defaults: {} }
     const updatedLib: LibrarySettings = {
       ...currentLib,
       defaults: { ...currentLib.defaults, restActivityId: rawId }
     }
     store.set('library', updatedLib)
-    broadcastLibrary(updatedLib)
+    broadcastLibrary()
   })
 
   ipcMain.handle(
@@ -705,7 +687,7 @@ if (!gotTheLock) {
         }
       }
       store.set('library', updatedLib)
-      broadcastLibrary(updatedLib)
+      broadcastLibrary()
     }
   )
 
@@ -753,6 +735,16 @@ if (!gotTheLock) {
           ]
         }
       })
+    })
+
+    // Fix YouTube Error 153: inject valid Referer & Origin headers on YouTube requests
+    session.defaultSession.webRequest.onBeforeSendHeaders((details, callback) => {
+      const url = details.url || ''
+      if (url.includes('youtube.com') || url.includes('youtube-nocookie.com')) {
+        details.requestHeaders['Referer'] = 'https://www.youtube.com/'
+        details.requestHeaders['Origin'] = 'https://www.youtube.com'
+      }
+      callback({ requestHeaders: details.requestHeaders })
     })
 
     const setupMainWindow = (win: BrowserWindow): void => {

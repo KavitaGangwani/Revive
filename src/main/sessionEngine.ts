@@ -7,6 +7,7 @@ import {
   BreathingScheduleItem,
   BreathingPhase
 } from '../shared/types'
+import { inferPhaseKind } from './store'
 
 export interface Clock {
   now: () => number;
@@ -61,6 +62,7 @@ export class SessionEngine {
   private isSnoozePeriod: boolean = false
   private breathingSchedule: BreathingScheduleItem[] = []
   private restWarningFired: boolean = false
+  private disruptedFocusRemainingMs: number = 0
 
   private tickTimer: any = null
   private transitionTimer: any = null
@@ -138,6 +140,7 @@ export class SessionEngine {
     this.loopIndex = 0
     this.snoozeUsedInCurrentRest = false
     this.isSnoozePeriod = false
+    this.disruptedFocusRemainingMs = 0
     this.enterFocus()
     return this.getSnapshot()
   }
@@ -146,6 +149,8 @@ export class SessionEngine {
     if (this.phase !== 'focus') {
       return this.getSnapshot()
     }
+    const now = this.clock.now()
+    this.disruptedFocusRemainingMs = Math.max(0, this.phaseEndsAt - now)
     this.clearTimers()
     this.restWarningFired = true // Avoid firing warning on manual skip
     this.isSnoozePeriod = false
@@ -158,6 +163,7 @@ export class SessionEngine {
     this.loopIndex = 0
     this.snoozeUsedInCurrentRest = false
     this.isSnoozePeriod = false
+    this.disruptedFocusRemainingMs = 0
     this.enterFocus()
     return this.getSnapshot()
   }
@@ -171,6 +177,7 @@ export class SessionEngine {
     this.restActivityId = null
     this.snoozeUsedInCurrentRest = false
     this.isSnoozePeriod = false
+    this.disruptedFocusRemainingMs = 0
     this.breathingSchedule = []
     this.persist(null)
     this.broadcast()
@@ -208,6 +215,7 @@ export class SessionEngine {
 
   /**
    * Early exit for soft-timed activities ("Resume focus" button)
+   * Enters transition-to-focus, which then resumes the focus phase.
    */
   public resumeFocus(): SessionSnapshot {
     if (this.phase !== 'rest' && this.phase !== 'transition-to-rest') {
@@ -326,10 +334,12 @@ export class SessionEngine {
     }
   }
 
-  private enterFocus(): void {
+  private enterFocus(customDurationMs?: number): void {
     this.phase = 'focus'
     this.restWarningFired = false
-    const duration = this.config.focusMinutes * this.getMsPerMinute()
+    const duration = customDurationMs && customDurationMs > 0
+      ? customDurationMs
+      : this.config.focusMinutes * this.getMsPerMinute()
     this.phaseStartedAt = this.clock.now()
     this.phaseEndsAt = this.phaseStartedAt + duration
     this.restActivityId = null
@@ -387,6 +397,7 @@ export class SessionEngine {
     this.breathingSchedule = []
     this.snoozeUsedInCurrentRest = false
     this.isSnoozePeriod = false
+    this.disruptedFocusRemainingMs = 0
 
     this.persist(null)
     this.broadcast()
@@ -399,6 +410,7 @@ export class SessionEngine {
     } else if (this.phase === 'transition-to-rest') {
       this.enterRest()
     } else if (this.phase === 'rest') {
+      this.disruptedFocusRemainingMs = 0
       if (this.loopIndex + 1 < this.config.loopCount) {
         this.loopIndex++
         this.enterTransitionToFocus()
@@ -406,7 +418,13 @@ export class SessionEngine {
         this.enterSessionComplete()
       }
     } else if (this.phase === 'transition-to-focus') {
-      this.enterFocus()
+      if (this.disruptedFocusRemainingMs > 0) {
+        const remaining = this.disruptedFocusRemainingMs
+        this.disruptedFocusRemainingMs = 0
+        this.enterFocus(remaining)
+      } else {
+        this.enterFocus()
+      }
     }
   }
 
@@ -460,7 +478,7 @@ export class SessionEngine {
       schedule.push({
         index,
         phaseIndex,
-        kind: p.kind,
+        kind: p.kind || inferPhaseKind(p.label, phaseIndex, phases.length),
         label: p.label,
         startEpochMs: currentEpoch,
         durationMs: actualDurationMs,

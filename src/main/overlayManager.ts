@@ -13,6 +13,7 @@ export class OverlayManager {
   private overlayWindows: { displayId: number; window: BrowserWindow; isPrimary: boolean }[] = []
   private getSettings: () => AppSettings
   private getMainWindow: () => BrowserWindow | null
+  private onResumeFocus: () => void
   private isOverlayActive: boolean = false
   private closeTimeout: any = null
   private currentSnapshot: SessionSnapshot | null = null
@@ -20,6 +21,7 @@ export class OverlayManager {
   constructor(options: OverlayManagerOptions) {
     this.getSettings = options.getSettings
     this.getMainWindow = options.getMainWindow
+    this.onResumeFocus = options.onResumeFocus
   }
 
   public getIsOverlayActive(): boolean {
@@ -62,18 +64,104 @@ export class OverlayManager {
     }
 
     const settings = this.getSettings()
-    const allDisplays = settings?.takeover?.allDisplays ?? true
-    const displays = allDisplays ? screen.getAllDisplays() : [screen.getPrimaryDisplay()]
-    const primaryDisplay = screen.getPrimaryDisplay()
+    const windowMode = settings?.takeover?.windowMode ?? 'window'
     const isDev = !app.isPackaged && Boolean(process.env['ELECTRON_RENDERER_URL'])
+    const primaryDisplay = screen.getPrimaryDisplay()
 
     this.overlayWindows = []
 
-    for (const display of displays) {
-      const isPrimary = display.id === primaryDisplay.id
-      const win = this.createOverlayWindow(display, isPrimary, isDev)
-      this.overlayWindows.push({ displayId: display.id, window: win, isPrimary })
+    if (windowMode === 'window') {
+      // User chose windowed mode: same window size as the app (900x720)
+      const win = this.createWindowedOverlay(primaryDisplay, isDev)
+      this.overlayWindows.push({ displayId: primaryDisplay.id, window: win, isPrimary: true })
+    } else {
+      // User chose fullscreen overlay
+      const allDisplays = settings?.takeover?.allDisplays ?? true
+      const displays = allDisplays ? screen.getAllDisplays() : [primaryDisplay]
+
+      for (const display of displays) {
+        const isPrimary = display.id === primaryDisplay.id
+        const win = this.createOverlayWindow(display, isPrimary, isDev)
+        this.overlayWindows.push({ displayId: display.id, window: win, isPrimary })
+      }
     }
+  }
+
+  private createWindowedOverlay(
+    display: Electron.Display,
+    isDev: boolean
+  ): BrowserWindow {
+    const win = new BrowserWindow({
+      title: 'Revive — Rest',
+      width: 900,
+      height: 720,
+      minWidth: 860,
+      minHeight: 640,
+      center: true,
+      frame: false,
+      fullscreen: false,
+      alwaysOnTop: true,
+      skipTaskbar: false,
+      backgroundColor: '#020407',
+      show: false,
+      autoHideMenuBar: true,
+      webPreferences: {
+        preload: join(__dirname, '../preload/index.js'),
+        contextIsolation: true,
+        nodeIntegration: false,
+        sandbox: false,
+        webviewTag: true
+      }
+    })
+
+    win.setAlwaysOnTop(true, 'screen-saver')
+
+    const query = new URLSearchParams({
+      overlay: 'primary',
+      windowMode: 'window',
+      displayId: String(display.id)
+    }).toString()
+
+    if (isDev && process.env['ELECTRON_RENDERER_URL']) {
+      win.loadURL(`${process.env['ELECTRON_RENDERER_URL']}?${query}`)
+    } else {
+      win.loadFile(join(__dirname, '../renderer/index.html'), {
+        search: query
+      })
+    }
+
+    win.once('ready-to-show', () => {
+      if (!win.isDestroyed()) {
+        win.show()
+        win.focus()
+        if (this.currentSnapshot) {
+          win.webContents.send(IPC_CHANNELS.SESSION_TICK, this.currentSnapshot)
+        }
+      }
+    })
+
+    win.webContents.on('before-input-event', (event, input) => {
+      if (input.key === 'Escape' && input.type === 'keyDown') {
+        event.preventDefault()
+        this.closeOverlays(true)
+        this.onResumeFocus()
+      }
+    })
+
+    win.webContents.on('did-finish-load', () => {
+      if (!win.isDestroyed() && this.currentSnapshot) {
+        win.webContents.send(IPC_CHANNELS.SESSION_TICK, this.currentSnapshot)
+      }
+    })
+
+    win.on('closed', () => {
+      this.overlayWindows = this.overlayWindows.filter((w) => w.window !== win)
+      if (this.overlayWindows.length === 0) {
+        this.isOverlayActive = false
+      }
+    })
+
+    return win
   }
 
   private createOverlayWindow(
@@ -105,11 +193,17 @@ export class OverlayManager {
     win.setAlwaysOnTop(true, 'screen-saver')
 
     const mode = isPrimary ? 'primary' : 'backdrop'
+    const query = new URLSearchParams({
+      overlay: mode,
+      windowMode: 'fullscreen',
+      displayId: String(display.id)
+    }).toString()
+
     if (isDev && process.env['ELECTRON_RENDERER_URL']) {
-      win.loadURL(`${process.env['ELECTRON_RENDERER_URL']}?overlay=${mode}&displayId=${display.id}`)
+      win.loadURL(`${process.env['ELECTRON_RENDERER_URL']}?${query}`)
     } else {
       win.loadFile(join(__dirname, '../renderer/index.html'), {
-        query: { overlay: mode, displayId: String(display.id) }
+        search: query
       })
     }
 
@@ -119,6 +213,23 @@ export class OverlayManager {
         if (isPrimary) {
           win.focus()
         }
+        if (this.currentSnapshot) {
+          win.webContents.send(IPC_CHANNELS.SESSION_TICK, this.currentSnapshot)
+        }
+      }
+    })
+
+    win.webContents.on('before-input-event', (event, input) => {
+      if (input.key === 'Escape' && input.type === 'keyDown') {
+        event.preventDefault()
+        this.closeOverlays(true)
+        this.onResumeFocus()
+      }
+    })
+
+    win.webContents.on('did-finish-load', () => {
+      if (!win.isDestroyed() && this.currentSnapshot) {
+        win.webContents.send(IPC_CHANNELS.SESSION_TICK, this.currentSnapshot)
       }
     })
 
@@ -136,6 +247,11 @@ export class OverlayManager {
     if (!this.isOverlayActive) return
 
     const settings = this.getSettings()
+    const windowMode = settings?.takeover?.windowMode ?? 'window'
+    if (windowMode === 'window') {
+      return
+    }
+
     const allDisplays = settings?.takeover?.allDisplays ?? true
     const currentDisplays = allDisplays ? screen.getAllDisplays() : [screen.getPrimaryDisplay()]
     const primaryDisplay = screen.getPrimaryDisplay()

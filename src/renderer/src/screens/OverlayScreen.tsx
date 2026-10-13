@@ -2,12 +2,13 @@ import React, { useEffect, useState, useMemo } from 'react'
 import {
   Activity,
   SessionSnapshot,
-  LibrarySettings,
+  LibraryPayload,
   SoundPack,
   AppSettings
 } from '../../../shared/types'
 import { Stars } from '../components/Stars'
 import { BreathingPlayer } from '../components/BreathingPlayer'
+import { RoutinePlayer } from '../components/RoutinePlayer'
 import { VideoPlayer } from '../components/VideoPlayer'
 import { SpotifyPlayer } from '../components/SpotifyPlayer'
 import { CustomPlayer } from '../components/CustomPlayer'
@@ -24,7 +25,7 @@ export function OverlayScreen({ mode }: OverlayScreenProps): React.JSX.Element {
   const isBackdropOnly = mode === 'backdrop'
 
   const [snapshot, setSnapshot] = useState<SessionSnapshot | null>(null)
-  const [library, setLibrary] = useState<LibrarySettings | null>(null)
+  const [library, setLibrary] = useState<LibraryPayload | null>(null)
   const [settings, setSettings] = useState<AppSettings | null>(null)
   const [soundPacks, setSoundPacks] = useState<SoundPack[]>([])
   const [isExiting, setIsExiting] = useState<boolean>(false)
@@ -65,10 +66,23 @@ export function OverlayScreen({ mode }: OverlayScreenProps): React.JSX.Element {
       setIsExiting(true)
     })
 
+    // 5. Global Escape key listener to exit overlay
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        e.preventDefault()
+        e.stopPropagation()
+        handleResumeFocus()
+      }
+    }
+    window.addEventListener('keydown', handleKeyDown, true)
+    document.addEventListener('keydown', handleKeyDown, true)
+
     return () => {
       if (unsubTick) unsubTick()
       if (unsubLib) unsubLib()
       if (unsubExit) unsubExit()
+      window.removeEventListener('keydown', handleKeyDown, true)
+      document.removeEventListener('keydown', handleKeyDown, true)
     }
   }, [isBackdropOnly])
 
@@ -120,12 +134,16 @@ export function OverlayScreen({ mode }: OverlayScreenProps): React.JSX.Element {
   // Resolve active rest activity
   const currentActivity = useMemo(() => {
     if (!library || !snapshot) return null
-    const targetId = snapshot.restActivityId || library.defaults?.restActivityId
+    const targetId = snapshot.restActivityId || library.defaultId || (library as any).defaults?.restActivityId
     if (!targetId) return null
-    return library.activities.find((a) => a.id === targetId) || null
+    return (library.activities || []).find((a) => a.id === targetId) || null
   }, [library, snapshot])
 
   const isSessionComplete = snapshot?.phase === 'session-complete'
+  const urlParams = new URLSearchParams(window.location.search)
+  const isWindowed =
+    urlParams.get('windowMode') === 'window' ||
+    (settings?.takeover?.windowMode ?? 'window') === 'window'
 
   return (
     <div
@@ -133,6 +151,30 @@ export function OverlayScreen({ mode }: OverlayScreenProps): React.JSX.Element {
         isExiting ? '-translate-y-full' : 'translate-y-0'
       }`}
     >
+      {/* Windowed Titlebar Header */}
+      {isWindowed && !isBackdropOnly && (
+        <header
+          className="app-titlebar"
+          style={{
+            position: 'absolute',
+            top: 0,
+            left: 0,
+            right: 0,
+            zIndex: 50,
+            background: 'rgba(2, 4, 7, 0.85)',
+            backdropFilter: 'blur(12px)',
+            borderBottom: '1px solid var(--hair)'
+          }}
+          aria-label="Rest window header"
+        >
+          <div className="app-brand">
+            <span className="brand-dot" />
+            <span className="brand-title">Revive · Rest</span>
+          </div>
+          <div className="titlebar-drag" style={{ WebkitAppRegion: 'drag' } as any} />
+        </header>
+      )}
+
       {/* 45% x 38% Radial Glow Backdrop */}
       <div
         className="absolute inset-0 pointer-events-none z-0"
@@ -146,7 +188,7 @@ export function OverlayScreen({ mode }: OverlayScreenProps): React.JSX.Element {
 
       {/* Render Player Content or Session Complete on Primary Display */}
       {!isBackdropOnly && snapshot && (
-        <div className="relative w-full h-full z-10 flex items-center justify-center">
+        <div className={`relative w-full h-full z-10 flex items-center justify-center ${isWindowed ? 'pt-[42px]' : ''}`}>
           {isSessionComplete ? (
             <SessionComplete
               onAnotherOne={handleAnotherOne}
@@ -155,56 +197,44 @@ export function OverlayScreen({ mode }: OverlayScreenProps): React.JSX.Element {
           ) : library ? (
             currentActivity ? (
               <>
-                {currentActivity.type === 'breathing' && (
-                  <BreathingPlayer
-                    activity={currentActivity}
-                    snapshot={snapshot}
-                    soundPacks={soundPacks}
-                    initialSoundPackId={library.defaults?.breathingSoundPackId}
-                    volume={library.defaults?.breathingSoundVolume ?? 0.8}
-                    onSnooze={handleSnooze}
-                    canSnooze={settings?.takeover?.allowSnooze ?? true}
-                  />
-                )}
-
-                {currentActivity.type === 'youtube' && (
+                {currentActivity.media?.kind === 'youtube' ? (
                   <VideoPlayer
                     activity={currentActivity}
                     snapshot={snapshot}
-                    onSnooze={handleSnooze}
                     onResumeFocus={handleResumeFocus}
-                    canSnooze={settings?.takeover?.allowSnooze ?? true}
                   />
-                )}
-
-                {currentActivity.type === 'spotify' && (
+                ) : currentActivity.media?.kind === 'spotify' ? (
                   <SpotifyPlayer
                     activity={currentActivity}
                     snapshot={snapshot}
-                    onSnooze={handleSnooze}
                     onResumeFocus={handleResumeFocus}
-                    canSnooze={settings?.takeover?.allowSnooze ?? true}
                   />
-                )}
-
-                {currentActivity.type === 'custom' && (
+                ) : currentActivity.type === 'routine' ? (
+                  <RoutinePlayer
+                    activity={currentActivity}
+                    snapshot={snapshot}
+                    onResumeFocus={handleResumeFocus}
+                  />
+                ) : currentActivity.type === 'breathing' ? (
+                  <BreathingPlayer
+                    activity={currentActivity}
+                    snapshot={snapshot}
+                    onResumeFocus={handleResumeFocus}
+                  />
+                ) : (
                   <CustomPlayer
                     activity={currentActivity}
                     snapshot={snapshot}
-                    onSnooze={handleSnooze}
                     onResumeFocus={handleResumeFocus}
-                    canSnooze={settings?.takeover?.allowSnooze ?? true}
                   />
                 )}
               </>
             ) : (
               <ActivityPicker
-                activities={library.activities}
+                activities={library.activities || []}
                 snapshot={snapshot}
                 onSelectActivity={handleSelectActivity}
-                onSnooze={handleSnooze}
                 onResumeFocus={handleResumeFocus}
-                canSnooze={settings?.takeover?.allowSnooze ?? true}
               />
             )
           ) : null}

@@ -1,5 +1,6 @@
 import React from 'react'
 import { Activity, SessionConfig, SessionSnapshot } from '../../../shared/types'
+import { SessionComplete } from './SessionComplete'
 
 interface FocusScreenProps {
   config: SessionConfig;
@@ -15,11 +16,189 @@ interface FocusScreenProps {
 
 export const FocusScreen: React.FC<FocusScreenProps> = ({
   config,
+  snapshot,
   library,
   onChangeConfig,
   onPickActivityForRest,
-  onStartSession
+  onStartSession,
+  onSkipToRest,
+  onAnotherOne,
+  onDoneForNow
 }) => {
+  // Format MM:SS for countdown timer
+  const formatRemaining = (ms: number): string => {
+    const totalSeconds = Math.max(0, Math.ceil(ms / 1000))
+    const minutes = Math.floor(totalSeconds / 60)
+    const seconds = totalSeconds % 60
+    return `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`
+  }
+
+  // Helper to resolve activity title
+  const getActivityTitle = (id: string | null): string | null => {
+    if (!id) return null
+    const found = library.find((a) => a.id === id)
+    return found ? (found.name || (found as any).title || id) : id
+  }
+
+  // 1. Session Complete View
+  if (snapshot.phase === 'session-complete') {
+    return (
+      <main className="main" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+        <SessionComplete onAnotherOne={onAnotherOne} onDoneForNow={onDoneForNow} />
+      </main>
+    )
+  }
+
+  // 2. Running Session View (Focus / Rest)
+  const isRunning =
+    snapshot.phase === 'focus' ||
+    snapshot.phase === 'transition-to-rest' ||
+    snapshot.phase === 'rest' ||
+    snapshot.phase === 'transition-to-focus'
+
+  if (isRunning) {
+    const currentRound = (snapshot.loopIndex ?? 0) + 1
+    const totalRounds = snapshot.loopCount || config.loopCount || 1
+
+    return (
+      <main className="main focus-grid">
+        {/* Left Card: Active Session */}
+        <section className="card focus">
+          <h1>{snapshot.phase === 'rest' ? 'Rest in progress' : 'Focus in progress'}</h1>
+          <p className="desc">
+            {snapshot.phase === 'rest'
+              ? 'Enjoy your break. Revive will guide you back to focus.'
+              : 'Revive is keeping track of your focus time. Stay in flow.'}
+          </p>
+
+          <span className="label cap">
+            {snapshot.phase === 'rest' ? 'Rest Time Remaining' : 'Focus Time Remaining'}
+          </span>
+
+          {/* Big Live Timer */}
+          <div className="counter big" style={{ minWidth: '220px' }}>
+            <div className="num" style={{ width: '100%', justifyContent: 'center' }}>
+              <b style={{ fontSize: '38px', letterSpacing: '-0.02em', fontVariantNumeric: 'tabular-nums' }}>
+                {formatRemaining(snapshot.remainingMs)}
+              </b>
+              <span>remaining</span>
+            </div>
+          </div>
+
+          {/* Session Progress Note */}
+          <p className="note" id="note">
+            Round {currentRound} of {totalRounds} · Session in progress
+          </p>
+
+          {/* Open Mini Widget Option */}
+          <div style={{ marginTop: '10px', display: 'flex', justifyContent: 'center' }}>
+            <button
+              type="button"
+              onClick={() => {
+                window.miniWindowApi?.setEnabled(true)
+              }}
+              className="pill"
+              style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '6px',
+                padding: '5px 12px',
+                fontSize: '10.5px',
+                color: 'var(--accent)',
+                borderColor: 'var(--accent-line)',
+                background: 'var(--accent-wash)',
+                cursor: 'pointer'
+              }}
+              title="Open floating desktop focus timer widget"
+            >
+              <svg viewBox="0 0 24 24" width="11" height="11" fill="none" stroke="currentColor" strokeWidth="2">
+                <rect x="3" y="3" width="18" height="18" rx="2" />
+                <path d="M15 3v6h6" />
+              </svg>
+              Open mini widget
+            </button>
+          </div>
+
+          {/* Action buttons */}
+          <div style={{ display: 'flex', gap: '10px', marginTop: '14px', width: '100%', maxWidth: '280px' }}>
+            <button
+              type="button"
+              onClick={onSkipToRest}
+              className="btn"
+              style={{
+                margin: 0,
+                flex: 1,
+                justifyContent: 'center',
+                whiteSpace: 'nowrap',
+                padding: '0 12px',
+                fontSize: '11px'
+              }}
+            >
+              Skip to rest
+            </button>
+            <button
+              type="button"
+              onClick={onDoneForNow}
+              className="cancel-btn"
+              style={{
+                flex: 1,
+                textAlign: 'center',
+                whiteSpace: 'nowrap',
+                padding: '0 12px',
+                fontSize: '11px'
+              }}
+            >
+              End session
+            </button>
+          </div>
+        </section>
+
+        {/* Right Card: Rest activities */}
+        <section className="card rest">
+          <h2>Rest activities</h2>
+          <p className="rest-sub">
+            Choose what you'll do in each rest. Empty ones use your default, or ask you when the time comes.
+          </p>
+
+          <div className="slots" id="slots">
+            {Array.from({ length: totalRounds }, (_, i) => {
+              const rawActivityId = config.restActivityIds[i]
+              const activityTitle = getActivityTitle(rawActivityId)
+              const isSet = Boolean(activityTitle)
+              const isCurrent = i === (snapshot.loopIndex ?? 0)
+
+              return (
+                <div
+                  key={i}
+                  className={`slot ${isSet ? 'set' : ''}`}
+                  style={isCurrent ? { borderColor: 'var(--accent-line)', background: 'var(--accent-wash)' } : undefined}
+                >
+                  <div className="t">
+                    <span className="label">
+                      Rest {i + 1} {isCurrent ? '· Next' : ''}
+                    </span>
+                    <span className="name">
+                      <i className="dot" />
+                      {activityTitle || 'No activity chosen'}
+                    </span>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => onPickActivityForRest(i)}
+                    className="pill"
+                  >
+                    {isSet ? 'Change' : 'Choose activity'}
+                  </button>
+                </div>
+              )
+            })}
+          </div>
+        </section>
+      </main>
+    )
+  }
+
+  // 3. Idle Setup View
   // Counter stepping helpers
   const handleStep = (key: 'focusMinutes' | 'restMinutes' | 'loopCount', delta: number) => {
     let nextFocus = config.focusMinutes
@@ -51,12 +230,7 @@ export const FocusScreen: React.FC<FocusScreenProps> = ({
     hours ? `${hours}h ` : ''
   }${mins ? `${mins}m` : ''}`.trim()
 
-  // Helper to resolve activity title
-  const getActivityTitle = (id: string | null): string | null => {
-    if (!id) return null
-    const found = library.find((a) => a.id === id)
-    return found ? (found.name || found.title || id) : id
-  }
+
 
   // Pure Focus Screen: setup screen with counters and rest activities slots
   return (

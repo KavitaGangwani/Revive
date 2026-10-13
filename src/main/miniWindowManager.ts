@@ -16,6 +16,7 @@ export class MiniWindowManager {
   private onSkipToRest: () => void
   private isEnabled: boolean = true
   private isFocusRunning: boolean = false
+  private currentSnapshot: SessionSnapshot | null = null
 
   private readonly MINI_WIDTH = 184
   private readonly MINI_HEIGHT = 208
@@ -25,8 +26,9 @@ export class MiniWindowManager {
     this.getMainWindow = options.getMainWindow
     this.onSkipToRest = options.onSkipToRest
 
+    const savedSettings = this.store.get('settings')
     const savedPrefs = this.store.get('prefs')
-    this.isEnabled = savedPrefs?.miniFocusWindowEnabled ?? true
+    this.isEnabled = savedSettings?.miniFocusWindow ?? savedPrefs?.miniFocusWindowEnabled ?? true
 
     this.registerIpc()
   }
@@ -70,6 +72,10 @@ export class MiniWindowManager {
   public setEnabled(enabled: boolean): void {
     this.isEnabled = enabled
     this.store.set('prefs.miniFocusWindowEnabled', enabled)
+    const settings = this.store.get('settings')
+    if (settings && settings.miniFocusWindow !== enabled) {
+      this.store.set('settings', { ...settings, miniFocusWindow: enabled })
+    }
 
     if (this.isEnabled && this.isFocusRunning) {
       this.showMiniWindow()
@@ -79,13 +85,13 @@ export class MiniWindowManager {
   }
 
   public handleSnapshot(snapshot: SessionSnapshot): void {
+    this.currentSnapshot = snapshot
     this.isFocusRunning = snapshot.phase === 'focus'
 
     if (this.isFocusRunning && this.isEnabled) {
       if (!this.window || this.window.isDestroyed()) {
         this.createMiniWindow()
-      }
-      if (this.window && !this.window.isDestroyed()) {
+      } else {
         if (!this.window.isVisible()) {
           this.window.showInactive()
         }
@@ -139,6 +145,7 @@ export class MiniWindowManager {
       height: this.MINI_HEIGHT,
       frame: false,
       transparent: true,
+      hasShadow: false,
       alwaysOnTop: true,
       skipTaskbar: true,
       resizable: false,
@@ -153,6 +160,11 @@ export class MiniWindowManager {
     })
 
     this.window.setAlwaysOnTop(true, 'screen-saver')
+    try {
+      this.window.setVisibleOnAllWorkspaces(true, { visibleOnFullScreen: true })
+    } catch {
+      // Ignore if not supported on platform
+    }
 
     const query = new URLSearchParams({
       window: 'mini',
@@ -179,10 +191,30 @@ export class MiniWindowManager {
       }
     })
 
+    const sendSnapshot = (): void => {
+      if (this.window && !this.window.isDestroyed() && this.currentSnapshot) {
+        this.window.webContents.send(IPC_CHANNELS.SESSION_TICK, this.currentSnapshot)
+      }
+    }
+
     this.window.once('ready-to-show', () => {
       if (this.window && !this.window.isDestroyed() && this.isEnabled && this.isFocusRunning) {
         this.window.showInactive()
+        sendSnapshot()
       }
+    })
+
+    this.window.webContents.on('did-finish-load', () => {
+      if (this.window && !this.window.isDestroyed() && this.isEnabled && this.isFocusRunning) {
+        if (!this.window.isVisible()) {
+          this.window.showInactive()
+        }
+        sendSnapshot()
+      }
+    })
+
+    this.window.on('closed', () => {
+      this.window = null
     })
   }
 

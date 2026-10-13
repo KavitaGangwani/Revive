@@ -11,8 +11,8 @@ export interface ActiveToast {
 
 export class ToastManager {
   private activeToasts: ActiveToast[] = []
-  private readonly TOAST_WIDTH = 310
-  private readonly TOAST_HEIGHT = 82
+  private readonly TOAST_WIDTH = 340
+  private readonly TOAST_HEIGHT = 86
   private readonly MARGIN = 20
   private readonly GAP = 10
   private readonly DURATION_MS = 8000

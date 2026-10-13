@@ -154,6 +154,23 @@ export class SoundEngine {
 
     const sampleRate = this.audioCtx.sampleRate
 
+    if (packId === 'calm-voice') {
+      // Calm voice: gentle harmonic background chime under the spoken voice cue
+      const duration = 1.8
+      const numSamples = Math.floor(sampleRate * duration)
+      const buffer = this.audioCtx.createBuffer(1, numSamples, sampleRate)
+      const data = buffer.getChannelData(0)
+      const freq = kind === 'in' ? 392 : kind === 'hold' ? 523.25 : 329.63 // G4, C5, E4
+
+      for (let i = 0; i < numSamples; i++) {
+        const t = i / sampleRate
+        const env = Math.sin((t / duration) * Math.PI) * Math.exp(-t * 2.8)
+        data[i] = Math.sin(2 * Math.PI * freq * t) * env * 0.16
+      }
+
+      return buffer
+    }
+
     if (packId === 'singing-bowl') {
       // Singing bowl: striking rich harmonics (In: 320Hz, Hold: 480Hz, Out: 240Hz)
       const duration = 3.5

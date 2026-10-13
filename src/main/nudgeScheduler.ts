@@ -15,6 +15,7 @@ export class NudgeScheduler {
   private nextEyeBreakMs: number = 0
   private nextDrinkWaterMs: number = 0
   private lastPhase: SessionPhase = 'idle'
+  private currentPhase: SessionPhase = 'idle'
   private checkIntervalTimer: any = null
 
   constructor(options: NudgeSchedulerOptions) {
@@ -43,14 +44,16 @@ export class NudgeScheduler {
   public handleSnapshot(snapshot: SessionSnapshot): void {
     const currentPhase = snapshot.phase
     const wasRest = this.lastPhase === 'rest' || this.lastPhase === 'transition-to-rest'
-    const isNowFocusOrIdle = currentPhase === 'focus' || currentPhase === 'idle'
+    const wasIdle = this.lastPhase === 'idle'
+    const isNowFocus = currentPhase === 'focus'
 
-    if (wasRest && isNowFocusOrIdle) {
-      // Rest has ended: reset nudge timers
+    if ((wasRest || wasIdle) && isNowFocus) {
+      // Focus session started or resumed after rest: reset nudge timers
       this.resetTimers()
     }
 
     this.lastPhase = currentPhase
+    this.currentPhase = currentPhase
   }
 
   private startLoop(): void {
@@ -65,6 +68,14 @@ export class NudgeScheduler {
     const now = Date.now()
     const settings = this.getSettings()
     const overlayShowing = this.isOverlayActive()
+
+    // Unless standaloneInBackground is enabled, nudges only fire when an active focus session is running
+    const standaloneAllowed = settings?.nudges?.standaloneInBackground ?? false
+    const isFocusRunning = this.currentPhase === 'focus'
+
+    if (!isFocusRunning && !standaloneAllowed) {
+      return
+    }
 
     // 1. Eye Break Check
     if (settings?.nudges?.eyeBreak?.enabled) {

@@ -18,31 +18,33 @@ export function VideoPlayer({
   canSnooze
 }: VideoPlayerProps): React.JSX.Element {
   const embedUrl = useMemo(() => {
-    if (!activity.url) return ''
-    const url = activity.url
+    const url = activity.media?.url || (activity as any).url
+    if (!url) return ''
     const ytRegex = /^(https?:\/\/)?(www\.)?(youtube\.com\/(watch\?v=|embed\/|shorts\/)|youtu\.be\/)([a-zA-Z0-9_-]{11})/
     const match = url.match(ytRegex)
     if (match && match[5]) {
-      return `https://www.youtube.com/embed/${match[5]}?autoplay=1&controls=1&rel=0`
+      return `https://www.youtube-nocookie.com/embed/${match[5]}?autoplay=1&controls=1&rel=0&enablejsapi=1&origin=https://www.youtube.com&widget_referrer=https://www.youtube.com`
     }
     return url
-  }, [activity.url])
+  }, [activity.media?.url, (activity as any).url])
 
   return (
     <SharedShell
       snapshot={snapshot}
-      onSnooze={onSnooze}
       onResumeFocus={onResumeFocus}
-      canSnooze={canSnooze}
     >
       <div className="flex flex-col items-center max-w-4xl w-full">
         {/* 16:9 Frame with hairline border and luminous top edge */}
         <div className="w-full aspect-video bg-black/60 rounded-[6px] border border-[var(--hair)] shadow-[0_-1px_10px_var(--accent-wash)] overflow-hidden relative">
           {embedUrl ? (
-            <webview
+            <iframe
+              id="youtube-player-frame"
               src={embedUrl}
+              title={activity.name || 'Rest Video'}
               className="w-full h-full border-0"
-              allowpopups={true}
+              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+              allowFullScreen
+              referrerPolicy="strict-origin-when-cross-origin"
             />
           ) : (
             <div className="w-full h-full flex items-center justify-center text-[var(--muted)] font-mono text-[12px] tracking-[0.1em] uppercase">

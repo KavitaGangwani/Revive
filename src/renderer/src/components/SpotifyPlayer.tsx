@@ -18,8 +18,8 @@ export function SpotifyPlayer({
   canSnooze
 }: SpotifyPlayerProps): React.JSX.Element {
   const embedUrl = useMemo(() => {
-    if (!activity.url) return 'https://open.spotify.com/embed/playlist/37i9dQZF1DX3rxVfibe1L0'
-    const url = activity.url
+    const url = activity.media?.url || (activity as any).url
+    if (!url) return 'https://open.spotify.com/embed/playlist/37i9dQZF1DX3rxVfibe1L0'
     if (url.includes('/embed/')) return url
     // Convert regular spotify url to embed url
     const spotRegex = /^(https?:\/\/)?(open\.spotify\.com\/(track|playlist|album|episode|show)\/)([a-zA-Z0-9]+)/
@@ -28,7 +28,7 @@ export function SpotifyPlayer({
       return `https://open.spotify.com/embed/${match[3]}/${match[4]}?utm_source=generator&theme=0`
     }
     return url
-  }, [activity.url])
+  }, [activity.media?.url, (activity as any).url])
 
   return (
     <SharedShell

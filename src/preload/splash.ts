@@ -18,6 +18,15 @@ const splashBridge: SplashBridge = {
   close: (): void => {
     ipcRenderer.send(IPC_CHANNELS.SPLASH_CLOSE)
     ipcRenderer.send(IPC_CHANNELS.WINDOW_CLOSE)
+  },
+  onStartAnimation: (callback: () => void): (() => void) => {
+    const sub = (): void => {
+      callback()
+    }
+    ipcRenderer.on('splash:start-animation', sub)
+    return (): void => {
+      ipcRenderer.removeListener('splash:start-animation', sub)
+    }
   }
 }
 

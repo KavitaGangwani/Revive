@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react'
+import { soundRegistry } from '../audio/soundRegistry'
 
 export interface ToastScreenProps {
   type: string;
@@ -19,6 +20,15 @@ export const ToastScreen: React.FC<ToastScreenProps> = ({
   const [isExiting, setIsExiting] = useState(false)
 
   useEffect(() => {
+    // Play chime sound whenever rest warning notification arrives (1 minute before rest)
+    if (type === 'restWarning') {
+      try {
+        soundRegistry.playWarningChime()
+      } catch (err) {
+        console.warn('[ToastScreen] Failed to play rest warning chime:', err)
+      }
+    }
+
     // Start progress bar drain immediately after mount
     const timer = setTimeout(() => {
       setDraining(true)
@@ -44,6 +54,26 @@ export const ToastScreen: React.FC<ToastScreenProps> = ({
         window.revive.toast.dismiss(toastId)
       }
     }, 250)
+  }
+
+  const handleSnooze = async () => {
+    setIsExiting(true)
+    try {
+      if (window.toastApi?.snooze) {
+        await window.toastApi.snooze()
+      } else if (window.revive?.session?.snooze) {
+        await window.revive.session.snooze()
+      }
+    } catch (err) {
+      console.error('Failed to snooze from toast:', err)
+    }
+    setTimeout(() => {
+      if (window.toastApi?.dismiss) {
+        window.toastApi.dismiss(toastId)
+      } else if (window.revive?.toast?.dismiss) {
+        window.revive.toast.dismiss(toastId)
+      }
+    }, 200)
   }
 
   // Determine icon, label, text based on type
@@ -73,8 +103,8 @@ export const ToastScreen: React.FC<ToastScreenProps> = ({
       </svg>
     )
   } else if (type === 'restWarning') {
-    defaultLabel = 'Rest in 1 minute'
-    defaultText = 'Find a good stopping point. Revive will take over the screen soon.'
+    defaultLabel = 'Rest in 60s'
+    defaultText = 'In 60 seconds, rest is upcoming. Wrap up or snooze.'
     iconSvg = (
       <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" strokeWidth="1.8">
         <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z" />
@@ -106,6 +136,18 @@ export const ToastScreen: React.FC<ToastScreenProps> = ({
           <div className="toast-caps-label">{displayLabel}</div>
           <div className="toast-text-line">{displayText}</div>
         </div>
+
+        {/* Snooze Button for Rest Warning */}
+        {type === 'restWarning' && (
+          <button
+            type="button"
+            className="toast-snooze-btn"
+            onClick={handleSnooze}
+            aria-label="Snooze rest takeover"
+          >
+            Snooze
+          </button>
+        )}
 
         {/* Dismiss Button */}
         <button

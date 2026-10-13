@@ -10,6 +10,7 @@ import {
   UserPrefs,
   Activity,
   LibrarySettings,
+  LibraryPayload,
   LibraryAPI,
   SettingsAPI,
   DeepPartial,
@@ -21,17 +22,14 @@ import {
 } from '../shared/types'
 
 const libraryApi: LibraryAPI = {
-  getLibrary: (): Promise<LibrarySettings> =>
+  getLibrary: (): Promise<LibraryPayload> =>
     ipcRenderer.invoke(IPC_CHANNELS.LIBRARY_GET),
 
-  addActivity: (input: Omit<Activity, 'id' | 'isBuiltIn'>): Promise<{ ok: true; activity: Activity } | { ok: false; error: string }> =>
+  addActivity: (input: Omit<Activity, 'id' | 'builtIn'>): Promise<{ ok: true; activity: Activity } | { ok: false; error: string }> =>
     ipcRenderer.invoke(IPC_CHANNELS.LIBRARY_ADD, input),
 
-  updateActivity: (id: string, input: Omit<Activity, 'id' | 'isBuiltIn'>): Promise<{ ok: true; activity: Activity } | { ok: false; error: string }> =>
+  updateActivity: (id: string, input: Omit<Activity, 'id' | 'builtIn'>): Promise<{ ok: true; activity: Activity } | { ok: false; error: string }> =>
     ipcRenderer.invoke(IPC_CHANNELS.LIBRARY_UPDATE, id, input),
-
-  duplicateActivity: (id: string): Promise<{ ok: true; activity: Activity } | { ok: false; error: string }> =>
-    ipcRenderer.invoke(IPC_CHANNELS.LIBRARY_DUPLICATE, id),
 
   deleteActivity: (id: string): Promise<void> =>
     ipcRenderer.invoke(IPC_CHANNELS.LIBRARY_DELETE, id),
@@ -42,8 +40,8 @@ const libraryApi: LibraryAPI = {
   setSoundSettings: (soundPackId: string | null, volume: number): Promise<void> =>
     ipcRenderer.invoke(IPC_CHANNELS.LIBRARY_SET_SOUND_SETTINGS, { soundPackId, volume }),
 
-  onLibraryChanged: (callback: (lib: LibrarySettings) => void): (() => void) => {
-    const handler = (_event: IpcRendererEvent, lib: LibrarySettings): void => {
+  onLibraryChanged: (callback: (lib: LibraryPayload) => void): (() => void) => {
+    const handler = (_event: IpcRendererEvent, lib: LibraryPayload): void => {
       callback(lib)
     }
     ipcRenderer.on(IPC_CHANNELS.LIBRARY_CHANGED, handler)
@@ -98,6 +96,9 @@ const miniWindowApi: MiniWindowAPI = {
 const toastApi: ToastAPI = {
   dismiss: (id: string): void => {
     ipcRenderer.send(IPC_CHANNELS.TOAST_DISMISS, id)
+  },
+  snooze: (minutes?: number): Promise<SessionSnapshot> => {
+    return ipcRenderer.invoke(IPC_CHANNELS.SESSION_SNOOZE, minutes)
   }
 }
 

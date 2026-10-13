@@ -45,10 +45,10 @@ export function ActivityPicker({
             >
               <div className="flex items-center justify-between w-full mb-3">
                 <span className="w-8 h-8 rounded-full border border-[var(--hair)] bg-[rgba(255,255,255,0.03)] flex items-center justify-center text-[var(--muted)] group-hover:text-[var(--accent)] group-hover:border-[var(--accent-line)] transition-colors">
-                  <Icon name={act.type === 'breathing' ? 'sun' : act.type === 'youtube' ? 'play' : act.type === 'spotify' ? 'music' : 'coffee'} className="w-4 h-4" />
+                  <Icon name={act.type === 'breathing' ? 'breathing' : act.type === 'routine' ? 'routine' : 'note'} className="w-4 h-4" />
                 </span>
                 <span className="text-[9px] uppercase tracking-[0.14em] text-[var(--muted)]">
-                  {act.type}
+                  {act.type || 'Activity'}
                 </span>
               </div>
 

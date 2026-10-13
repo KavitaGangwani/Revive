@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { AppSettings, DeepPartial } from '../../shared/types'
+import { AppSettings, DeepPartial, SessionSnapshot } from '../../shared/types'
 import {
   defaultSettings,
   clampAndMergeSettings,
@@ -7,15 +7,18 @@ import {
   snapToStep
 } from '../store'
 import { TrayManager } from '../tray'
+import { NudgeScheduler } from '../nudgeScheduler'
 
 describe('Settings Data and Clamping', () => {
   it('has the correct default settings', () => {
     expect(defaultSettings).toEqual({
       nudges: {
         eyeBreak: { enabled: true, intervalMinutes: 20 },
-        drinkWater: { enabled: true, intervalMinutes: 45 }
+        drinkWater: { enabled: true, intervalMinutes: 45 },
+        standaloneInBackground: false
       },
       takeover: {
+        windowMode: 'window',
         allDisplays: true,
         allowSnooze: true,
         snoozeMinutes: 5,
@@ -133,3 +136,56 @@ describe('Tray Manager & Session Running Logic', () => {
     expect(trayManager.isSessionRunning('session-complete')).toBe(false)
   })
 })
+
+describe('NudgeScheduler Session Behavior', () => {
+  it('only fires nudges during active focus session unless standaloneInBackground is enabled', () => {
+    let shownToasts: string[] = []
+    let currentSettings: AppSettings = {
+      ...defaultSettings,
+      nudges: {
+        eyeBreak: { enabled: true, intervalMinutes: 1 },
+        drinkWater: { enabled: true, intervalMinutes: 1 },
+        standaloneInBackground: false
+      }
+    }
+
+    const mockToastManager = {
+      showToast: (kind: string) => { shownToasts.push(kind) }
+    } as any
+
+    const scheduler = new NudgeScheduler({
+      getSettings: () => currentSettings,
+      toastManager: mockToastManager,
+      isOverlayActive: () => false
+    })
+
+    // 1. In idle phase with standaloneInBackground = false: no toasts
+    scheduler.handleSnapshot({ phase: 'idle' } as SessionSnapshot)
+    ;(scheduler as any).nextEyeBreakMs = Date.now() - 1000
+    ;(scheduler as any).checkNudges()
+    expect(shownToasts.length).toBe(0)
+
+    // 2. In focus phase: toasts fire
+    scheduler.handleSnapshot({ phase: 'focus' } as SessionSnapshot)
+    ;(scheduler as any).nextEyeBreakMs = Date.now() - 1000
+    ;(scheduler as any).checkNudges()
+    expect(shownToasts).toContain('eyeBreak')
+
+    // 3. In idle phase with standaloneInBackground = true: toasts fire
+    shownToasts = []
+    currentSettings = {
+      ...currentSettings,
+      nudges: {
+        ...currentSettings.nudges,
+        standaloneInBackground: true
+      }
+    }
+    scheduler.handleSnapshot({ phase: 'idle' } as SessionSnapshot)
+    ;(scheduler as any).nextDrinkWaterMs = Date.now() - 1000
+    ;(scheduler as any).checkNudges()
+    expect(shownToasts).toContain('drinkWater')
+
+    scheduler.destroy()
+  })
+})
+

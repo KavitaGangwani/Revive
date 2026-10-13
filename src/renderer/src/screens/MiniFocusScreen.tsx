@@ -14,6 +14,12 @@ export const MiniFocusScreen: React.FC = () => {
   const getApi = () => window.revive || window.still
 
   useEffect(() => {
+    document.documentElement.style.background = 'transparent'
+    document.body.style.background = 'transparent'
+    document.documentElement.classList.add('html-mini-window')
+    document.body.classList.add('body-mini-window')
+    document.body.classList.remove('bg-bg')
+
     const api = getApi()
     api?.session?.getSnapshot().then((snap) => {
       if (snap) setSnapshot(snap)
@@ -43,6 +49,13 @@ export const MiniFocusScreen: React.FC = () => {
     }
   }
 
+  const handleDismiss = (e: React.MouseEvent) => {
+    e.stopPropagation()
+    if (window.miniWindowApi?.setEnabled) {
+      window.miniWindowApi.setEnabled(false)
+    }
+  }
+
   const loopIndex = (snapshot?.loopIndex ?? 0) + 1
   const loopCount = snapshot?.loopCount ?? 2
   const remainingMs = snapshot?.remainingMs ?? 0
@@ -52,6 +65,19 @@ export const MiniFocusScreen: React.FC = () => {
 
   return (
     <div className="mini-focus-card" style={{ WebkitAppRegion: 'drag' } as any}>
+      {/* Dismiss button */}
+      <button
+        type="button"
+        className="mini-close-btn"
+        onClick={handleDismiss}
+        title="Hide mini timer"
+        aria-label="Hide mini timer"
+        style={{ WebkitAppRegion: 'no-drag' } as any}
+      >
+        <svg viewBox="0 0 24 24" width="10" height="10" stroke="currentColor" fill="none">
+          <path d="M18 6L6 18M6 6l12 12" strokeWidth="2.5" strokeLinecap="round" />
+        </svg>
+      </button>
       {/* 112px Progress Ring with Countdown Timer */}
       <div className="mini-ring-container">
         <svg className="mini-ring-svg" viewBox="0 0 112 112" width="112" height="112">

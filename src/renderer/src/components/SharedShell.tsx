@@ -44,31 +44,12 @@ export function SharedShell({
         {children}
       </main>
 
-      {/* Bottom Bar: Hairline progress + Action button */}
+      {/* Bottom Bar: Hairline progress + Centered Esc prompt */}
       <footer className="w-full flex flex-col z-20">
-        <div className="w-full flex items-center justify-between px-8 py-5">
-          <div>
-            {canSnooze && !snoozeUsed && onSnooze && (
-              <button
-                type="button"
-                onClick={onSnooze}
-                className="px-4 py-2 text-[11px] uppercase tracking-[0.12em] text-[var(--muted)] hover:text-white border border-[var(--hair)] hover:border-[var(--faint)] bg-[rgba(255,255,255,0.03)] hover:bg-[rgba(255,255,255,0.08)] rounded-[4px] transition-all cursor-pointer font-mono"
-              >
-                Snooze 2m
-              </button>
-            )}
-          </div>
-
-          <div>
-            <button
-              type="button"
-              id="resume-focus-btn"
-              onClick={onResumeFocus}
-              className="px-6 py-2.5 text-[11px] font-medium tracking-[0.14em] uppercase text-[#020407] bg-[var(--accent)] hover:bg-[var(--accent-hi)] rounded-full transition-all cursor-pointer shadow-[0_0_12px_rgba(175,221,255,0.35)] active:scale-[0.98] font-mono"
-            >
-              Resume focus
-            </button>
-          </div>
+        <div className="w-full flex items-center justify-center px-8 py-3.5">
+          <span className="text-[11px] text-[var(--muted)] tracking-[0.08em] font-mono select-none">
+            Press Escape to escape.
+          </span>
         </div>
 
         {/* 2px Hairline Progress Bar */}

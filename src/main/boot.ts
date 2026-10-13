@@ -3,10 +3,10 @@ import { join } from 'path'
 import { IPC_CHANNELS } from '../shared/types'
 
 // Constants
-const SPLASH_ANIM_MS = 1000
-const SPLASH_HOLD_MS = 300
-const MIN_VISIBLE_MS = SPLASH_ANIM_MS + SPLASH_HOLD_MS // 1300ms
-const SPLASH_FADE_MS = 250
+const SPLASH_ANIM_MS = 2400
+const SPLASH_HOLD_MS = 600
+const MIN_VISIBLE_MS = SPLASH_ANIM_MS + SPLASH_HOLD_MS // 3000ms
+const SPLASH_FADE_MS = 300
 
 export interface BootContext {
   splashWindow: BrowserWindow;
@@ -32,7 +32,7 @@ export async function runBootSequence(appReadyAt: number = Date.now()): Promise<
       preload: join(__dirname, '../preload/splash.js'),
       contextIsolation: true,
       nodeIntegration: false,
-      sandbox: true
+      sandbox: false
     }
   })
 
@@ -65,7 +65,7 @@ export async function runBootSequence(appReadyAt: number = Date.now()): Promise<
       preload: join(__dirname, '../preload/index.js'),
       contextIsolation: true,
       nodeIntegration: false,
-      sandbox: true
+      sandbox: false
     }
   })
 
@@ -73,6 +73,7 @@ export async function runBootSequence(appReadyAt: number = Date.now()): Promise<
   let splashShownAt = 0
   let mainReady = false
   let swapped = false
+  let splashAnimationDone = false
 
   const trySwap = async (): Promise<void> => {
     if (process.env['SPLASH_PREVIEW'] === '1' || process.env['SPLASH_PREVIEW'] === 'true') {
@@ -81,10 +82,13 @@ export async function runBootSequence(appReadyAt: number = Date.now()): Promise<
     }
     if (swapped) return
     if (!mainReady || splashShownAt === 0) return
-    const elapsed = Date.now() - splashShownAt
-    if (elapsed < MIN_VISIBLE_MS) {
-      setTimeout(trySwap, MIN_VISIBLE_MS - elapsed)
-      return
+    
+    // If animation has not signaled completion yet, wait for it (with a safety timeout fallback)
+    if (!splashAnimationDone) {
+      const elapsed = Date.now() - splashShownAt
+      if (elapsed < 3500) {
+        return
+      }
     }
 
     swapped = true
@@ -114,15 +118,22 @@ export async function runBootSequence(appReadyAt: number = Date.now()): Promise<
     }
   }
 
+  // Handle splash animation completion signal
+  ipcMain.on(IPC_CHANNELS.SPLASH_DONE, () => {
+    splashAnimationDone = true
+    trySwap()
+  })
+
   // 4. Measure splash time from when the splash has actually painted (ready-to-show)
   const onSplashPainted = (): void => {
     if (splashShownAt > 0) return
     splashShownAt = Date.now()
     if (!splashWindow.isDestroyed()) {
       splashWindow.show()
+      splashWindow.webContents.send('splash:start-animation')
     }
     console.log(`[boot] splash painted: ${splashShownAt - appReadyAt}ms`)
-    setTimeout(trySwap, MIN_VISIBLE_MS)
+    setTimeout(trySwap, 3500)
   }
 
   splashWindow.once('ready-to-show', onSplashPainted)

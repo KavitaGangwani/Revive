@@ -3,7 +3,7 @@ import {
   Activity,
   SessionConfig,
   SessionSnapshot,
-  LibrarySettings
+  LibraryPayload
 } from '../../shared/types'
 import { Stars } from './components/Stars'
 import { Sidebar, AppRoute } from './components/Sidebar'
@@ -32,9 +32,9 @@ const defaultSnapshot: SessionSnapshot = {
   config: defaultSessionConfig
 }
 
-const defaultLibrary: LibrarySettings = {
+const defaultLibrary: LibraryPayload = {
   activities: [],
-  defaults: { restActivityId: null }
+  defaultId: undefined
 }
 
 export default function App(): React.JSX.Element {
@@ -50,6 +50,9 @@ export default function App(): React.JSX.Element {
   // 2. Check for mini focus window
   const windowMode = urlParams.get('window')
   if (windowMode === 'mini') {
+    document.documentElement.classList.add('html-mini-window')
+    document.body.classList.add('body-mini-window')
+    document.body.classList.remove('bg-bg')
     return <MiniFocusScreen />
   }
 
@@ -78,7 +81,7 @@ export default function App(): React.JSX.Element {
 
   const [config, setConfig] = useState<SessionConfig>(defaultSessionConfig)
   const [snapshot, setSnapshot] = useState<SessionSnapshot>(defaultSnapshot)
-  const [library, setLibrary] = useState<LibrarySettings>(defaultLibrary)
+  const [library, setLibrary] = useState<LibraryPayload>(defaultLibrary)
   const [isLoaded, setIsLoaded] = useState<boolean>(false)
 
   const saveTimeoutRef = useRef<any>(null)
@@ -251,7 +254,7 @@ export default function App(): React.JSX.Element {
 
   // Library Handlers
   const handleAddActivity = async (
-    input: Omit<Activity, 'id' | 'isBuiltIn'>
+    input: Omit<Activity, 'id' | 'builtIn'>
   ): Promise<{ ok: true; activity: Activity } | { ok: false; error: string }> => {
     if (!window.libraryApi) {
       return { ok: false, error: 'Library API not available.' }
@@ -261,21 +264,12 @@ export default function App(): React.JSX.Element {
 
   const handleUpdateActivity = async (
     id: string,
-    input: Omit<Activity, 'id' | 'isBuiltIn'>
+    input: Omit<Activity, 'id' | 'builtIn'>
   ): Promise<{ ok: true; activity: Activity } | { ok: false; error: string }> => {
     if (!window.libraryApi) {
       return { ok: false, error: 'Library API not available.' }
     }
     return await window.libraryApi.updateActivity(id, input)
-  }
-
-  const handleDuplicateActivity = async (
-    id: string
-  ): Promise<{ ok: true; activity: Activity } | { ok: false; error: string }> => {
-    if (!window.libraryApi) {
-      return { ok: false, error: 'Library API not available.' }
-    }
-    return await window.libraryApi.duplicateActivity(id)
   }
 
   const handleDeleteActivity = async (id: string): Promise<void> => {
@@ -306,6 +300,7 @@ export default function App(): React.JSX.Element {
     }
     const winControls =
       window.windowControls ||
+      window.windowApi ||
       window.revive?.windowControls ||
       window.still?.windowControls
     if (winControls?.minimize) {
@@ -319,6 +314,7 @@ export default function App(): React.JSX.Element {
     }
     const winControls =
       window.windowControls ||
+      window.windowApi ||
       window.revive?.windowControls ||
       window.still?.windowControls
     if (winControls?.close) {
@@ -379,7 +375,7 @@ export default function App(): React.JSX.Element {
         <FocusScreen
           config={config}
           snapshot={snapshot}
-          library={library.activities}
+          library={library.activities || []}
           onChangeConfig={handleConfigChange}
           onPickActivityForRest={handlePickActivityForRest}
           onStartSession={handleStartSession}
@@ -393,11 +389,11 @@ export default function App(): React.JSX.Element {
         <ActivitiesScreen
           library={library}
           pickForRestIndex={pickForRestIndex}
+          currentSlotActivityId={pickForRestIndex !== null ? config.restActivityIds[pickForRestIndex] : null}
           onSelectActivityForSlot={handleSelectActivityForSlot}
           onCancelPick={handleCancelPick}
           onAddActivity={handleAddActivity}
           onUpdateActivity={handleUpdateActivity}
-          onDuplicateActivity={handleDuplicateActivity}
           onDeleteActivity={handleDeleteActivity}
           onSetDefault={handleSetDefault}
         />

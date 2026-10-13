@@ -346,7 +346,16 @@ svg {
 /* Two-column equal grid for Focus setup */
 .main.focus-grid {
   grid-template-columns: 1fr 1fr;
-  grid-template-rows: 1fr;
+  grid-template-rows: auto;
+  align-items: start;
+}
+
+/* Two-column layout with filter tiles for Activities setup */
+.main.activities-grid {
+  padding: 48px 20px 16px 20px;
+  grid-template-columns: 1.1fr 1fr;
+  grid-template-rows: auto minmax(0, 1fr);
+  gap: 14px;
 }
 
 .card {
@@ -359,6 +368,7 @@ svg {
   display: flex;
   flex-direction: column;
   min-width: 0;
+  height: fit-content;
 }
 /* Luminous top edge */
 .card::before {
@@ -953,17 +963,23 @@ input:focus, textarea:focus {
 .settings-page {
   flex: 1;
   min-width: 0;
-  padding: 42px 24px 20px 24px;
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  grid-template-rows: auto auto;
+  padding: 42px 24px 24px 24px;
+  display: flex;
   gap: 16px;
-  align-content: start;
+  align-items: flex-start;
   overflow-y: auto;
   position: relative;
   z-index: 1;
   scrollbar-width: thin;
   scrollbar-color: var(--track) transparent;
+}
+
+.settings-col {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  min-width: 0;
 }
 
 .settings-card {
@@ -975,6 +991,7 @@ input:focus, textarea:focus {
   display: flex;
   flex-direction: column;
   min-width: 0;
+  height: fit-content;
 }
 
 /* Luminous top edge */
@@ -990,7 +1007,7 @@ input:focus, textarea:focus {
 }
 
 .settings-card-full {
-  grid-column: 1 / -1;
+  width: 100%;
 }
 
 .settings-card-header {
@@ -1044,6 +1061,105 @@ input:focus, textarea:focus {
   padding: 14px 0;
   border-top: 1px solid var(--hair);
   transition: opacity 0.3s ease;
+}
+
+/* Stacked Row for Reset Takeover and prominent selections */
+.setting-row.setting-row-stacked {
+  flex-direction: column;
+  align-items: stretch;
+  gap: 12px;
+}
+
+.setting-controls-stacked {
+  width: 100%;
+}
+
+.takeover-options-group {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  width: 100%;
+}
+
+.takeover-option-btn {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  padding: 10px 14px;
+  border-radius: 10px;
+  border: 1px solid var(--hud-border);
+  background: rgba(255, 255, 255, 0.02);
+  cursor: pointer;
+  text-align: left;
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  font-family: inherit;
+  color: inherit;
+}
+
+.takeover-option-btn:hover {
+  background: rgba(255, 255, 255, 0.05);
+  border-color: var(--hair);
+}
+
+.takeover-option-btn.active {
+  background: var(--accent-wash);
+  border-color: var(--accent-line);
+}
+
+.takeover-option-radio {
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  border: 1px solid var(--hud-border);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex: none;
+  transition: border-color 0.2s;
+}
+
+.takeover-option-btn.active .takeover-option-radio {
+  border-color: var(--accent);
+}
+
+.takeover-radio-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: transparent;
+  transition: all 0.2s;
+}
+
+.takeover-option-btn.active .takeover-radio-dot {
+  background: var(--accent);
+  box-shadow: 0 0 6px var(--accent);
+}
+
+.takeover-option-label {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.takeover-option-title {
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: 0.04em;
+  color: var(--text);
+  text-transform: none;
+}
+
+.takeover-option-btn.active .takeover-option-title {
+  color: var(--accent);
+}
+
+.takeover-option-hint {
+  font-size: 10px;
+  color: var(--faint);
+  letter-spacing: 0.02em;
+  text-transform: none;
 }
 
 .setting-row.dimmed .setting-info {
@@ -1595,7 +1711,15 @@ input:focus, textarea:focus {
 }
 
 /* 2. Mini Focus Floating Window */
+body.body-mini-window, html.html-mini-window {
+  background: transparent !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  overflow: hidden !important;
+}
+
 .mini-focus-card {
+  position: relative;
   width: 184px;
   height: 208px;
   background: rgba(2, 4, 7, 0.94);
@@ -1609,6 +1733,33 @@ input:focus, textarea:focus {
   user-select: none;
   overflow: hidden;
   padding: 14px 10px;
+  box-sizing: border-box;
+}
+
+.mini-close-btn {
+  position: absolute;
+  top: 10px;
+  right: 12px;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: transparent;
+  border: none;
+  color: var(--muted);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  opacity: 0.6;
+  transition: opacity 0.15s ease, color 0.15s ease, background 0.15s ease;
+  padding: 0;
+  z-index: 10;
+}
+
+.mini-close-btn:hover {
+  opacity: 1;
+  color: var(--accent);
+  background: rgba(255, 255, 255, 0.08);
 }
 
 .mini-ring-container {
@@ -1798,6 +1949,29 @@ input:focus, textarea:focus {
 
 .toast-close-btn:hover {
   color: var(--text);
+}
+
+.toast-snooze-btn {
+  background: var(--accent-wash);
+  border: 1px solid var(--accent-line);
+  color: var(--accent);
+  font-family: var(--font-label);
+  font-size: 10px;
+  font-weight: 500;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  padding: 3px 9px;
+  border-radius: 999px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  flex-shrink: 0;
+  white-space: nowrap;
+}
+
+.toast-snooze-btn:hover {
+  background: var(--accent);
+  color: #000;
+  box-shadow: 0 0 10px rgba(175, 221, 255, 0.4);
 }
 
 .toast-progress-track {

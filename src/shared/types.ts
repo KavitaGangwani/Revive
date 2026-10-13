@@ -7,12 +7,14 @@ export interface AppSettings {
   nudges: {
     eyeBreak: { enabled: boolean; intervalMinutes: number }; // 5-120, step 5
     drinkWater: { enabled: boolean; intervalMinutes: number }; // 5-180, step 5
+    standaloneInBackground?: boolean; // Run nudges even when no active focus session is running
   };
   takeover: {
     allDisplays: boolean; // true = every display, false = main display only
     allowSnooze: boolean;
     snoozeMinutes: number; // 1-15, step 1
     restWarning: boolean; // Rest in 1 minute warning toast (default: true)
+    windowMode?: 'window' | 'fullscreen'; // 'window' = same size as app (900x720), 'fullscreen' = full screen overlay
   };
   sound: {
     chimeAtRestStart: boolean;
@@ -26,14 +28,14 @@ export type DeepPartial<T> = {
   [P in keyof T]?: T[P] extends object ? DeepPartial<T[P]> : T[P];
 };
 
-export type ActivityType = 'breathing' | 'custom' | 'youtube' | 'spotify';
+export type ActivityType = 'breathing' | 'routine'; // absent = none
 
 export type PhaseKind = 'in' | 'hold' | 'out';
 
 export interface BreathingPhase {
   label: string;
   seconds: number;
-  kind: PhaseKind;
+  kind?: PhaseKind;
   soundId?: string;
 }
 
@@ -59,26 +61,35 @@ export interface BreathingScheduleItem {
 
 export interface Activity {
   id: string;
-  type: ActivityType;
-  name: string;
-  isBuiltIn: boolean;
-  note?: string; // max 120 chars
-  phases?: BreathingPhase[]; // breathing
-  url?: string; // youtube | spotify (normalised)
-  createdAt?: number;
-  // Compatibility helpers
+  name: string; // 1-40 chars
+  builtIn: boolean;
+  note?: string; // max 120
+  type?: ActivityType;
+  phases?: { label: string; seconds: number; kind?: PhaseKind }[]; // breathing: 1-8 phases, label 1-24 chars, seconds 1-30
+  steps?: { name: string; seconds: number }[]; // routine: 1-12 steps, name 1-24 chars, seconds 5-300
+  media?: { kind: 'youtube' | 'spotify'; url: string };
+  // Backwards compatibility helpers
+  isBuiltIn?: boolean;
   title?: string;
+  createdAt?: number;
 }
 
 export interface LibrarySettings {
-  activities: Activity[];
-  soundPacks?: SoundPack[];
+  custom: Activity[]; // only user-made activities are stored
   defaults: {
     restActivityId?: string | null;
     breathingSoundPackId?: string | null;
     breathingSoundVolume?: number; // 0..1
     restWarning?: boolean;
   };
+  // Runtime / backward compatibility aliases
+  activities?: Activity[];
+  soundPacks?: SoundPack[];
+}
+
+export interface LibraryPayload {
+  activities: Activity[];
+  defaultId?: string;
 }
 
 // Backwards compatibility alias
@@ -164,6 +175,7 @@ export interface SplashBridge {
   done: () => void;
   minimize: () => void;
   close: () => void;
+  onStartAnimation?: (callback: () => void) => () => void;
 }
 
 export interface MainBridge {
@@ -195,14 +207,14 @@ export interface OverlayAPI {
 }
 
 export interface LibraryAPI {
-  getLibrary: () => Promise<LibrarySettings>;
-  addActivity: (input: Omit<Activity, 'id' | 'isBuiltIn'>) => Promise<{ ok: true; activity: Activity } | { ok: false; error: string }>;
-  updateActivity: (id: string, input: Omit<Activity, 'id' | 'isBuiltIn'>) => Promise<{ ok: true; activity: Activity } | { ok: false; error: string }>;
-  duplicateActivity: (id: string) => Promise<{ ok: true; activity: Activity } | { ok: false; error: string }>;
+  getLibrary: () => Promise<LibraryPayload>;
+  addActivity: (input: Omit<Activity, 'id' | 'builtIn'>) => Promise<{ ok: true; activity: Activity } | { ok: false; error: string }>;
+  updateActivity: (id: string, input: Omit<Activity, 'id' | 'builtIn'>) => Promise<{ ok: true; activity: Activity } | { ok: false; error: string }>;
+  duplicateActivity?: (id: string) => Promise<{ ok: true; activity: Activity } | { ok: false; error: string }>;
   deleteActivity: (id: string) => Promise<void>;
   setDefault: (id: string | null) => Promise<void>;
-  setSoundSettings: (soundPackId: string | null, volume: number) => Promise<void>;
-  onLibraryChanged: (callback: (lib: LibrarySettings) => void) => () => void;
+  setSoundSettings?: (soundPackId: string | null, volume: number) => Promise<void>;
+  onLibraryChanged: (callback: (lib: LibraryPayload) => void) => () => void;
 }
 
 export interface MiniWindowAPI {
@@ -214,6 +226,7 @@ export interface MiniWindowAPI {
 
 export interface ToastAPI {
   dismiss: (id: string) => void;
+  snooze?: (minutes?: number) => Promise<SessionSnapshot>;
 }
 
 export interface ReviveAPI {
