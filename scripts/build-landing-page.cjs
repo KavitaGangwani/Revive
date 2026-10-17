@@ -18,25 +18,21 @@ const html = `<!DOCTYPE html>
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-  <title>Revive — Sustained Focus Grounded in Recovery</title>
-  <meta name="description" content="Download Revive for Windows and macOS. Desktop recovery app designed to protect cognitive stamina and sustain flow state through peaceful screen pauses, guided breathing, and custom active rest routines." />
-  <meta name="theme-color" content="#020407" />
+  <title>Revive — Sustainable Flow Starts with Recovery</title>
+  <meta name="description" content="Revive is a desktop app for Windows and macOS for people who do deep work and struggle to stop. When your focus time is up, it takes over your screen with a few minutes of guided recovery." />
+  <meta name="theme-color" content="#000000" />
 
   <!-- OpenGraph -->
-  <meta property="og:title" content="Revive — Sustained Focus Grounded in Recovery" />
-  <meta property="og:description" content="Desktop recovery app for Windows & macOS." />
+  <meta property="og:title" content="Revive — Sustainable Flow Starts with Recovery" />
+  <meta property="og:description" content="Revive protects your cognitive stamina. Guided recovery for Windows and macOS." />
   <meta property="og:type" content="website" />
   <meta property="og:image" content="assets/revive-ui-screenshot.jpg" />
 
-  <!-- Typography: Strict JetBrains Mono Matching the App -->
+  <!-- Typography: JetBrains Mono & Lavishly Yours for Brand Wordmark -->
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:ital,wght@0,300;0,400;0,500;0,600;0,700;1,400&display=swap" rel="stylesheet" />
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500&family=Lavishly+Yours&display=swap" rel="stylesheet" />
   <link rel="icon" type="image/png" href="assets/icon.png" />
-
-  <!-- Animation Libraries: GSAP & ScrollTrigger -->
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js"></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/ScrollTrigger.min.js"></script>
 
   <style>
     /* ==========================================================================
@@ -45,28 +41,28 @@ const html = `<!DOCTYPE html>
     :root {
       color-scheme: dark;
       --bg: #000000;
-      --bg-deep: #020407;
-      --bg-card: rgba(8, 12, 18, 0.88);
-      --bg-card-hover: rgba(14, 22, 34, 0.96);
+      --surface: #020407;
+      --text: #FFFFFF;
+      --muted: rgba(255, 255, 255, 0.58);
+      --faint: rgba(255, 255, 255, 0.34);
+      --hair: rgba(255, 255, 255, 0.08);
 
       --accent: #AFDDFF;
-      --accent-hi: #DDF0FF;
-      --accent-core: #F2FAFF;
-      --accent-glow: rgba(175, 221, 255, 0.35);
+      --accent-hover: #C8E8FF;
       --accent-wash: rgba(175, 221, 255, 0.08);
       --accent-line: rgba(175, 221, 255, 0.28);
-
-      --text: #FFFFFF;
-      --muted: rgba(255, 255, 255, 0.62);
-      --faint: rgba(255, 255, 255, 0.32);
-      --hair: rgba(255, 255, 255, 0.08);
-      --hud-border: rgba(255, 255, 255, 0.14);
+      --accent-glow: rgba(175, 221, 255, 0.35);
 
       --font-mono: 'JetBrains Mono', ui-monospace, Menlo, Consolas, monospace;
+      --font-brand: 'Lavishly Yours', cursive;
       --ease: cubic-bezier(0.16, 1, 0.3, 1);
     }
 
-    * { box-sizing: border-box; margin: 0; padding: 0; }
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
 
     html {
       background: var(--bg);
@@ -74,24 +70,159 @@ const html = `<!DOCTYPE html>
       font-family: var(--font-mono);
       scroll-behavior: smooth;
       -webkit-font-smoothing: antialiased;
-      letter-spacing: 0.04em;
+      overflow-x: clip;
     }
 
     body {
-      overflow-x: hidden;
-      min-height: 100vh;
       background: var(--bg);
-      line-height: 1.6;
-      font-size: 13px;
+      color: var(--text);
+      line-height: 1.8;
+      font-size: 15px;
+      font-family: var(--font-mono);
+      overflow-x: clip;
+      min-height: 100vh;
     }
 
-    /* Keyboard focus accessibility */
+    /* Accessibility: Visible keyboard focus */
     :focus-visible {
       outline: 2px solid var(--accent);
       outline-offset: 3px;
     }
 
-    /* Fixed Sparse Starfield & Upward Drifting Light Motes */
+    /* Container: Max width 1200px, 24px gutters */
+    .container {
+      width: 100%;
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 0 24px;
+      position: relative;
+      z-index: 10;
+    }
+
+    .text-center { text-align: center; }
+
+    /* Brand Wordmark (Google Font "Lavishly Yours", regular weight, letter-spacing 0) */
+    .brand-wordmark {
+      font-family: var(--font-brand);
+      font-weight: 400;
+      letter-spacing: 0;
+      font-size: 30px;
+      line-height: 1;
+      color: #FFFFFF;
+      display: inline-block;
+      user-select: none;
+    }
+
+    /* Section Heads Common */
+    .sec-head {
+      text-align: center;
+      max-width: 820px;
+      margin: 0 auto 48px;
+    }
+    .sec-label {
+      font-size: 10px;
+      text-transform: uppercase;
+      letter-spacing: 0.12em;
+      color: var(--muted);
+      margin-bottom: 14px;
+      display: inline-block;
+      font-weight: 500;
+    }
+    .sec-title {
+      font-size: clamp(28px, 4.4vw, 56px);
+      font-weight: 500;
+      letter-spacing: -0.03em;
+      line-height: 1.15;
+      color: #FFFFFF;
+      margin-bottom: 16px;
+    }
+    .sec-lede {
+      font-size: 15px;
+      line-height: 1.8;
+      color: var(--muted);
+      max-width: 680px;
+      margin: 0 auto;
+    }
+
+    .shimmer-text {
+      color: var(--accent);
+    }
+
+    /* Pill Badges */
+    .pill-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 6px 14px;
+      border-radius: 999px;
+      background: rgba(255, 255, 255, 0.03);
+      border: 1px solid var(--hair);
+      color: var(--accent);
+      font-size: 10px;
+      text-transform: uppercase;
+      letter-spacing: 0.12em;
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+    }
+    .glowing-dot {
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: var(--accent);
+      box-shadow: 0 0 10px var(--accent);
+      flex-shrink: 0;
+    }
+
+    /* Pill Buttons (44px) */
+    .pill-btn {
+      height: 44px;
+      padding: 0 24px;
+      border-radius: 999px;
+      font-family: var(--font-mono);
+      font-size: 12px;
+      font-weight: 500;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+      cursor: pointer;
+      border: 1px solid transparent;
+      transition: all 0.25s var(--ease);
+      text-decoration: none;
+      white-space: nowrap;
+    }
+    .pill-btn.primary {
+      background: var(--accent);
+      color: #000000;
+      border-color: var(--accent);
+      box-shadow: 0 0 20px var(--accent-glow);
+    }
+    .pill-btn.primary:hover {
+      background: var(--accent-hover);
+      border-color: var(--accent-hover);
+      transform: translateY(-2px);
+      box-shadow: 0 0 32px rgba(175, 221, 255, 0.55);
+    }
+    .pill-btn.outline {
+      background: transparent;
+      border-color: var(--hair);
+      color: #FFFFFF;
+    }
+    .pill-btn.outline:hover {
+      border-color: var(--accent);
+      color: var(--accent);
+      background: var(--accent-wash);
+      transform: translateY(-2px);
+    }
+    .pill-btn svg {
+      width: 14px;
+      height: 14px;
+      flex-shrink: 0;
+    }
+
+    /* Sparse Fixed Ambience Layer: ~18 twinkling stars & 4 drifting motes */
     .ambience-layer {
       position: fixed;
       inset: 0;
@@ -101,26 +232,20 @@ const html = `<!DOCTYPE html>
       z-index: 1;
       overflow: hidden;
     }
-    .stars {
-      position: absolute;
-      inset: 0;
-      width: 100%;
-      height: 100%;
-    }
-    .stars i {
+    .ambience-layer i.star {
       position: absolute;
       width: 2px;
       height: 2px;
       border-radius: 50%;
-      background: #fff;
+      background: #FFFFFF;
       opacity: 0;
-      animation: tw var(--d, 6s) ease-in-out var(--s, 0s) infinite;
+      animation: star-twinkle var(--d, 6s) ease-in-out var(--s, 0s) infinite;
     }
-    @keyframes tw {
+    @keyframes star-twinkle {
       0%, 100% { opacity: 0; }
       50% { opacity: var(--o, 0.65); }
     }
-    .mote {
+    .ambience-layer .mote {
       position: absolute;
       width: 3px;
       height: 3px;
@@ -128,177 +253,200 @@ const html = `<!DOCTYPE html>
       background: var(--accent);
       box-shadow: 0 0 8px var(--accent);
       opacity: 0;
-      animation: mote-rise var(--m-dur, 24s) linear var(--m-delay, 0s) infinite;
+      animation: mote-rise var(--m-dur, 26s) linear var(--m-delay, 0s) infinite;
     }
     @keyframes mote-rise {
       0% { transform: translateY(105vh) translateX(0); opacity: 0; }
-      15% { opacity: var(--m-op, 0.5); }
-      85% { opacity: var(--m-op, 0.5); }
+      20% { opacity: var(--m-op, 0.5); }
+      80% { opacity: var(--m-op, 0.5); }
       100% { transform: translateY(-10vh) translateX(var(--m-drift, 20px)); opacity: 0; }
     }
 
-    /* HUD Corner Marks & Margin Plus Ticks */
-    .hud-marker {
+    /* Breathing Horizon Glow */
+    .horizon-glow {
       position: absolute;
+      bottom: 0;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 100%;
+      max-width: 1200px;
+      height: 200px;
+      background: radial-gradient(ellipse 70% 85% at 50% 100%, rgba(175, 221, 255, 0.22), rgba(40, 95, 160, 0.08) 50%, transparent 80%);
       pointer-events: none;
-      color: var(--hud-border);
-      font-family: var(--font-mono);
-      font-size: 11px;
-      line-height: 1;
-      user-select: none;
+      animation: horizon-breathe 8s ease-in-out infinite alternate;
       z-index: 2;
     }
-    .hud-box {
-      position: absolute;
-      width: 38px;
-      height: 38px;
+    @keyframes horizon-breathe {
+      0% { opacity: 0.55; transform: translateX(-50%) scaleY(0.9); }
+      100% { opacity: 0.95; transform: translateX(-50%) scaleY(1.15); }
+    }
+
+    /* CARD LANGUAGE: 24px radius, 1px hairline border, faint glass fill with backdrop blur,
+       thin accent edge line along top, soft ice-blue radial glow in corner, hover spotlight */
+    .glass-card {
+      position: relative;
+      border-radius: 24px;
       border: 1px solid var(--hair);
-      pointer-events: none;
-      z-index: 2;
+      background: rgba(255, 255, 255, 0.03);
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+      overflow: hidden;
+      transition: border-color 0.25s var(--ease), transform 0.25s var(--ease), box-shadow 0.25s var(--ease);
+      --mx: 50%;
+      --my: 50%;
     }
-    .hud-box::before, .hud-box::after {
+    .glass-card::before {
       content: "";
       position: absolute;
-      width: 3px;
-      height: 3px;
+      top: 0;
+      left: 12%;
+      right: 12%;
+      height: 1px;
+      background: linear-gradient(90deg, transparent, rgba(175, 221, 255, 0.45), transparent);
+      pointer-events: none;
+      z-index: 3;
+    }
+    .glass-card::after {
+      content: "";
+      position: absolute;
+      top: 0;
+      right: 0;
+      width: 150px;
+      height: 150px;
       border-radius: 50%;
-      background: var(--hud-border);
+      background: radial-gradient(circle, rgba(175, 221, 255, 0.06), transparent 70%);
+      pointer-events: none;
+      z-index: 1;
     }
-    .hud-box::before { top: -1px; left: -1px; }
-    .hud-box::after { bottom: -1px; right: -1px; }
-
-    .container {
-      width: 100%;
-      max-width: 1060px;
-      margin: 0 auto;
-      padding: 0 24px;
-      position: relative;
-      z-index: 10;
+    .card-spotlight {
+      position: absolute;
+      inset: 0;
+      background: radial-gradient(360px circle at var(--mx, 50%) var(--my, 50%), rgba(175, 221, 255, 0.09), transparent 80%);
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.25s ease;
+      z-index: 2;
     }
-    .text-center { text-align: center; }
-
-    .caps {
-      text-transform: uppercase;
-      letter-spacing: 0.14em;
+    .glass-card:hover {
+      border-color: rgba(175, 221, 255, 0.35);
+      transform: translateY(-2px);
+      box-shadow: 0 16px 40px rgba(0, 0, 0, 0.4);
     }
-
-    .shimmer-text {
-      color: var(--accent);
-      text-shadow: 0 0 25px rgba(175, 221, 255, 0.45);
+    .glass-card:hover .card-spotlight {
+      opacity: 1;
     }
 
-    /* Word wrapping for motion typography */
-    .word-wrap {
-      display: inline-block;
-      overflow: hidden;
-      vertical-align: bottom;
-      padding: 2px 0;
+    /* Progressive enhancement reveal animation */
+    html.js-ready .reveal-section {
+      opacity: 0;
+      transform: translateY(12px);
+      transition: opacity 0.7s var(--ease), transform 0.7s var(--ease);
     }
-    .word-inner {
-      display: inline-block;
-      will-change: transform, opacity;
-      transform-origin: center bottom;
+    html.js-ready .reveal-section.revealed {
+      opacity: 1;
+      transform: translateY(0);
     }
 
     /* ==========================================================================
-       TOP NAVIGATION
+       TOP FLOATING NAV PILL (Sticky, Blurred Dark, Hairline Border, 999px Radius)
        ========================================================================== */
-    .nav-bar {
-      position: fixed;
-      top: 0;
-      left: 0;
-      right: 0;
-      height: 60px;
-      background: rgba(2, 4, 7, 0.90);
-      backdrop-filter: blur(16px);
-      -webkit-backdrop-filter: blur(16px);
-      border-bottom: 1px solid var(--hair);
+    .nav-floating-wrap {
+      position: sticky;
+      top: 18px;
       z-index: 900;
       display: flex;
-      align-items: center;
+      justify-content: center;
+      padding: 0 16px;
+      pointer-events: none;
+      width: 100%;
     }
-    .nav-container {
+    .nav-pill {
+      pointer-events: auto;
       display: flex;
       align-items: center;
       justify-content: space-between;
+      gap: 28px;
+      background: rgba(2, 4, 7, 0.85);
+      backdrop-filter: blur(20px);
+      -webkit-backdrop-filter: blur(20px);
+      border: 1px solid var(--hair);
+      border-radius: 999px;
+      padding: 8px 12px 8px 20px;
+      max-width: 920px;
       width: 100%;
+      box-shadow: 0 16px 40px rgba(0, 0, 0, 0.6), 0 0 24px rgba(175, 221, 255, 0.06);
     }
     .nav-brand {
-      display: flex;
+      display: inline-flex;
       align-items: center;
       gap: 10px;
       text-decoration: none;
-      color: #fff;
+      color: #FFFFFF;
+      flex-shrink: 0;
     }
-    .brand-indicator {
-      width: 7px;
-      height: 7px;
-      border-radius: 50%;
-      background: var(--accent);
-      box-shadow: 0 0 10px var(--accent);
+    .nav-brand .brand-wordmark {
+      font-size: 30px;
+      padding-top: 2px;
     }
-    .brand-name {
-      font-size: 12.5px;
-      font-weight: 600;
-      letter-spacing: 0.16em;
-      text-transform: uppercase;
-    }
-    .nav-center-links {
+    .nav-links {
       display: flex;
       align-items: center;
-      gap: 28px;
+      gap: 18px;
     }
     .nav-link {
       font-size: 11px;
-      letter-spacing: 0.1em;
+      letter-spacing: 0.08em;
       text-transform: uppercase;
       color: var(--muted);
       text-decoration: none;
-      transition: color 0.2s ease;
-      cursor: pointer;
-    }
-    .nav-link:hover { color: var(--accent); }
-
-    .nav-actions {
-      display: flex;
-      align-items: center;
-      gap: 8px;
-    }
-    .nav-btn {
-      font-family: var(--font-mono);
-      font-size: 10.5px;
-      letter-spacing: 0.08em;
-      padding: 6px 13px;
+      padding: 6px 12px;
       border-radius: 999px;
-      text-decoration: none;
-      display: inline-flex;
-      align-items: center;
-      gap: 6px;
-      cursor: pointer;
-      border: 1px solid rgba(175, 221, 255, 0.25);
-      background: rgba(175, 221, 255, 0.06);
-      color: var(--accent);
-      transition: all 0.2s ease;
+      transition: color 0.2s ease, background 0.2s ease;
+      white-space: nowrap;
     }
-    .nav-btn:hover {
+    .nav-link:hover {
+      color: #FFFFFF;
+    }
+    .nav-link.active {
+      color: var(--accent);
+      background: var(--accent-wash);
+    }
+    .nav-download-pill {
+      font-family: var(--font-mono);
+      font-size: 11px;
+      font-weight: 500;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      padding: 8px 18px;
+      border-radius: 999px;
+      border: 1px solid var(--accent);
       background: var(--accent);
-      color: #000;
-      box-shadow: 0 0 14px rgba(175, 221, 255, 0.45);
+      color: #000000;
+      cursor: pointer;
+      transition: all 0.2s var(--ease);
+      flex-shrink: 0;
+      box-shadow: 0 0 14px rgba(175, 221, 255, 0.35);
+    }
+    .nav-download-pill:hover {
+      background: var(--accent-hover);
+      border-color: var(--accent-hover);
+      transform: translateY(-1px);
+      box-shadow: 0 0 22px rgba(175, 221, 255, 0.55);
     }
 
     /* ==========================================================================
-       HERO SECTION
+       SECTION 1: HERO (Centred, min-height 100vh, Rhythm Wave, Ambient Video)
        ========================================================================== */
     .hero-section {
       position: relative;
-      padding-top: 140px;
-      padding-bottom: 60px;
+      min-height: 100vh;
       display: flex;
       flex-direction: column;
       align-items: center;
+      justify-content: center;
+      padding: 120px 0 80px;
       text-align: center;
-      background: radial-gradient(ellipse 65% 50% at 50% 26%, rgba(40, 95, 160, 0.22), transparent 75%);
-      overflow: hidden;
+      overflow: hidden; /* Clips horizon glow from leaking */
     }
     .hero-ambient-video {
       position: absolute;
@@ -306,349 +454,290 @@ const html = `<!DOCTYPE html>
       width: 100%;
       height: 100%;
       object-fit: cover;
-      opacity: 0.12;
-      mix-blend-mode: screen;
+      opacity: 0.40;
       pointer-events: none;
-      mask-image: radial-gradient(ellipse 65% 50% at 50% 40%, black 30%, transparent 75%);
-      -webkit-mask-image: radial-gradient(ellipse 65% 50% at 50% 40%, black 30%, transparent 75%);
+      mask-image: linear-gradient(180deg, black 30%, transparent 95%);
+      -webkit-mask-image: linear-gradient(180deg, black 30%, transparent 95%);
+      z-index: 1;
     }
     .hero-content {
-      max-width: 720px;
+      max-width: 860px;
       margin: 0 auto;
       position: relative;
       z-index: 5;
     }
-    .hero-badge {
-      display: inline-flex;
-      align-items: center;
-      gap: 8px;
-      padding: 5px 14px;
-      border-radius: 999px;
-      background: rgba(175, 221, 255, 0.05);
-      border: 1px solid rgba(175, 221, 255, 0.2);
-      color: var(--accent);
-      font-size: 10px;
-      letter-spacing: 0.14em;
-      text-transform: uppercase;
-      margin-bottom: 24px;
-    }
     .hero-title {
-      font-size: clamp(28px, 4vw, 46px);
+      font-size: clamp(34px, 7vw, 96px);
       font-weight: 500;
-      letter-spacing: -0.01em;
-      line-height: 1.25;
-      margin-bottom: 20px;
-      color: #fff;
+      letter-spacing: -0.03em;
+      line-height: 1.1;
+      color: #FFFFFF;
+      margin: 24px auto 22px;
+      max-width: 15ch;
     }
     .hero-desc {
-      font-size: 13.5px;
-      line-height: 1.7;
+      font-size: 15px;
+      line-height: 1.8;
       color: var(--muted);
-      max-width: 580px;
+      max-width: 680px;
       margin: 0 auto 34px;
-      letter-spacing: 0.03em;
     }
-    .download-row {
+    .hero-cta-row {
       display: flex;
       align-items: center;
       justify-content: center;
-      gap: 12px;
+      gap: 14px;
       flex-wrap: wrap;
       margin-bottom: 16px;
     }
-    .dl-btn {
-      display: inline-flex;
-      align-items: center;
-      gap: 10px;
-      padding: 13px 26px;
-      border-radius: 999px;
-      font-family: var(--font-mono);
-      font-size: 12px;
-      font-weight: 500;
-      letter-spacing: 0.08em;
-      text-transform: uppercase;
-      text-decoration: none;
-      cursor: pointer;
-      border: 0;
-      transition: all 0.25s var(--ease);
-    }
-    .dl-btn.primary {
-      background: var(--accent);
-      color: #000;
-      box-shadow: 0 0 25px rgba(175, 221, 255, 0.35);
-    }
-    .dl-btn.primary:hover {
-      background: var(--accent-hi);
-      transform: translateY(-2px);
-      box-shadow: 0 0 40px rgba(175, 221, 255, 0.6);
-    }
-    .dl-btn.secondary {
-      background: rgba(255, 255, 255, 0.03);
-      color: #fff;
-      border: 1px solid var(--hud-border);
-    }
-    .dl-btn.secondary:hover {
-      background: rgba(255, 255, 255, 0.08);
-      border-color: var(--accent);
-      color: var(--accent);
-      transform: translateY(-2px);
-    }
-    .dl-btn svg { width: 15px; height: 15px; flex-shrink: 0; }
-
-    .hero-specs {
-      font-size: 10.5px;
+    .hero-meta {
+      font-size: 11px;
       color: var(--faint);
+      letter-spacing: 0.08em;
+      margin-bottom: 48px;
+    }
+
+    /* Rhythm Wave Glass Bar */
+    .rhythm-wave-bar {
+      max-width: 980px;
+      margin: 0 auto;
+      border-radius: 24px;
+      background: rgba(255, 255, 255, 0.03);
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+      border: 1px solid var(--hair);
+      padding: 24px 28px 20px;
+      position: relative;
+      overflow: hidden;
+    }
+    .rhythm-wave-bar::before {
+      content: "";
+      position: absolute;
+      top: 0;
+      left: 15%;
+      right: 15%;
+      height: 1px;
+      background: linear-gradient(90deg, transparent, rgba(175, 221, 255, 0.4), transparent);
+    }
+    .rhythm-svg-wrap {
+      width: 100%;
+      height: 64px;
+    }
+    .rhythm-svg {
+      width: 100%;
+      height: 100%;
+      overflow: visible;
+    }
+    .rhythm-labels {
       display: flex;
       align-items: center;
       justify-content: center;
       gap: 12px;
-      flex-wrap: wrap;
-      letter-spacing: 0.06em;
-    }
-
-    /* Section Headings Common */
-    .sec-tag {
-      font-size: 10.5px;
-      letter-spacing: 0.18em;
-      text-transform: uppercase;
-      color: var(--accent);
-      margin-bottom: 12px;
-      display: inline-block;
-    }
-    .sec-title {
-      font-size: clamp(24px, 3.4vw, 36px);
-      font-weight: 500;
-      letter-spacing: 0.01em;
-      color: #fff;
-      margin-bottom: 12px;
-    }
-    .sec-desc {
-      font-size: 13.5px;
+      font-size: 11px;
+      letter-spacing: 0.08em;
       color: var(--muted);
-      line-height: 1.6;
-      max-width: 580px;
-      margin: 0 auto;
+      margin-top: 14px;
+      flex-wrap: wrap;
+    }
+    .rhythm-labels .rest-accent {
+      color: var(--accent);
+      font-weight: 500;
+    }
+    .rhythm-labels .label-sep {
+      color: var(--faint);
     }
 
     /* ==========================================================================
-       SECTION 1 (NEW): WHY REVIVE (id="why")
+       MARQUEE STRIP (Between Hero & Section 2)
        ========================================================================== */
-    .why-section {
-      padding: 90px 0 80px;
-      position: relative;
-      border-top: 1px solid var(--hair);
-    }
-    .why-strips {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 20px;
-      margin-top: 38px;
-    }
-    .why-strip-card {
-      display: flex;
-      flex-direction: column;
-      gap: 10px;
-    }
-    .why-strip {
-      height: 112px;
-      border-radius: 16px;
-      border: 1px solid var(--hud-border);
-      background: var(--bg-deep);
-      position: relative;
+    .marquee-strip {
       overflow: hidden;
-      display: flex;
-      flex-direction: column;
-      justify-content: space-between;
-      padding: 10px 14px 12px;
-    }
-    .why-strip.revive-takeover {
-      border-color: var(--accent-line);
-      box-shadow: 0 0 25px rgba(175, 221, 255, 0.06);
-    }
-    .strip-topbar {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
+      position: relative;
       width: 100%;
+      border-top: 1px solid var(--hair);
+      border-bottom: 1px solid var(--hair);
+      padding: 16px 0;
+      background: rgba(2, 4, 7, 0.6);
       z-index: 5;
     }
-    .strip-dots {
+    .marquee-track {
+      display: flex;
+      width: max-content;
+      animation: marquee-scroll 12s linear infinite;
+    }
+    .marquee-content {
       display: flex;
       align-items: center;
-      gap: 5px;
-    }
-    .strip-dot {
-      width: 5px;
-      height: 5px;
-      border-radius: 50%;
-      background: rgba(255, 255, 255, 0.22);
-    }
-    .strip-labels {
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      font-size: 10px;
-      letter-spacing: 0.1em;
-      text-transform: uppercase;
-      font-mono: var(--font-mono);
-    }
-    .strip-tag-muted { color: var(--muted); }
-    .strip-tag-accent { color: var(--accent); }
-    .strip-timer-tag {
-      font-size: 10px;
-      letter-spacing: 0.08em;
-      color: var(--faint);
-      font-mono: var(--font-mono);
-    }
-
-    /* Work lines pulsing in 6s loop */
-    .strip-work-lines {
-      display: flex;
-      flex-direction: column;
-      gap: 7px;
-      width: 100%;
-      margin-top: 6px;
-      z-index: 2;
-    }
-    .strip-work-line {
-      height: 6px;
-      background: rgba(255, 255, 255, 0.26);
-      border-radius: 3px;
-      animation: work-pulse 6s ease-in-out infinite;
-    }
-    .strip-work-line.l1 { width: 88%; --w: 88%; animation-delay: 0s; }
-    .strip-work-line.l2 { width: 72%; --w: 72%; animation-delay: 0.5s; }
-    .strip-work-line.l3 { width: 56%; --w: 56%; animation-delay: 1s; }
-    @keyframes work-pulse {
-      0%, 100% { width: var(--w, 80%); }
-      50% { width: calc(var(--w, 80%) * 0.82); }
-    }
-
-    /* Left strip: Toast sliding in & out */
-    .strip-toast {
-      position: absolute;
-      top: 10px;
-      right: 12px;
-      background: rgba(14, 22, 34, 0.96);
-      border: 1px solid var(--hud-border);
-      border-radius: 8px;
-      padding: 6px 10px;
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      font-size: 9.5px;
-      color: #fff;
-      z-index: 10;
-      animation: toast-slide 6s ease-in-out infinite;
-    }
-    .strip-toast-dismiss {
-      color: var(--accent);
-      text-transform: uppercase;
-      font-size: 8.5px;
-      letter-spacing: 0.08em;
-      cursor: pointer;
-    }
-    @keyframes toast-slide {
-      0%, 15% { transform: translateX(130%); opacity: 0; }
-      25%, 65% { transform: translateX(0); opacity: 1; }
-      75%, 100% { transform: translateX(130%); opacity: 0; }
-    }
-
-    /* Right strip: 12s takeover loop */
-    .strip-overlay {
-      position: absolute;
-      inset: 0;
-      background: rgba(2, 4, 7, 0.95);
-      backdrop-filter: blur(4px);
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      z-index: 8;
-      animation: takeover-cycle 12s ease-in-out infinite;
-    }
-    .strip-video {
-      position: absolute;
-      inset: 0;
-      width: 100%;
-      height: 100%;
-      object-fit: cover;
-      opacity: 0.55;
-      mix-blend-mode: screen;
-      pointer-events: none;
-    }
-    .strip-ring {
-      width: 46px;
-      height: 46px;
-      border-radius: 50%;
-      border: 1.5px solid var(--accent);
-      box-shadow: 0 0 12px var(--accent-wash);
-      display: grid;
-      place-items: center;
-      animation: ring-scale 6s ease-in-out infinite;
-      position: relative;
-      z-index: 2;
-    }
-    .strip-breath-text {
-      font-size: 9.5px;
+      gap: 28px;
+      padding-right: 28px;
+      font-size: 11px;
       letter-spacing: 0.16em;
       text-transform: uppercase;
-      color: var(--accent);
-      margin-top: 4px;
-      font-weight: 500;
-      animation: breath-text 6s ease-in-out infinite;
-      position: relative;
-      z-index: 2;
+      color: var(--faint);
+      white-space: nowrap;
     }
-    .strip-rest-label {
-      position: absolute;
-      top: 10px;
-      right: 14px;
-      font-size: 9px;
-      letter-spacing: 0.1em;
-      text-transform: uppercase;
-      color: var(--accent);
-      z-index: 3;
-    }
-    @keyframes takeover-cycle {
-      0%, 24% { opacity: 0; pointer-events: none; }
-      28%, 84% { opacity: 1; pointer-events: auto; }
-      88%, 100% { opacity: 0; pointer-events: none; }
-    }
-    @keyframes ring-scale {
-      0%, 100% { transform: scale(0.7); }
-      50% { transform: scale(1.15); }
-    }
-    @keyframes breath-text {
-      0%, 46% { opacity: 1; content: "Breathe in"; }
-      48%, 52% { opacity: 0; }
-      54%, 100% { opacity: 1; content: "Breathe out"; }
-    }
-
-    .strip-caption {
-      font-size: 11.5px;
-      color: var(--muted);
-      line-height: 1.4;
-      padding-left: 2px;
+    @keyframes marquee-scroll {
+      0% { transform: translateX(0); }
+      100% { transform: translateX(-50%); }
     }
 
     /* ==========================================================================
-       SECTION 2: REVIVE IN ACTION (id="preview-section") — UPGRADED LAYOUT
+       SECTION 2: WHY REVIVE (id="premise") — BENTO GRID OF 3 GLASS CARDS
        ========================================================================== */
-    .preview-section {
-      padding: 90px 0;
+    .sec-premise {
+      padding: 110px 0 90px;
       position: relative;
-      border-top: 1px solid var(--hair);
+    }
+    .bento-grid {
+      display: grid;
+      grid-template-columns: repeat(6, 1fr);
+      gap: 16px;
+      margin-top: 20px;
+    }
+    .bento-card-1 {
+      grid-column: span 4;
+      grid-row: span 2;
+      min-height: 380px;
+      padding: 38px 36px 36px;
+      display: flex;
+      flex-direction: column;
+      justify-content: flex-end;
+      position: relative;
+    }
+    .bento-card-2, .bento-card-3 {
+      grid-column: span 2;
+      min-height: 180px;
+      padding: 28px 26px;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+    }
+    .card-num-label {
+      font-size: 10px;
+      letter-spacing: 0.14em;
+      color: var(--accent);
+      font-weight: 500;
+      margin-bottom: 12px;
+      display: block;
+    }
+    .card-lead-text {
+      color: #FFFFFF;
+      font-weight: 500;
+      letter-spacing: -0.02em;
+      line-height: 1.3;
+      margin-bottom: 12px;
+    }
+    .card-lead-text.lg {
+      font-size: clamp(24px, 3vw, 38px);
+    }
+    .card-lead-text.md {
+      font-size: 18px;
+    }
+    .card-muted-text {
+      font-size: 14px;
+      line-height: 1.7;
+      color: var(--muted);
     }
 
-    /* Centered Segmented Pill Tab Bar */
-    .preview-tab-pill-wrap {
+    /* Concentric rings top-right in Card 1 */
+    .concentric-rings {
+      position: absolute;
+      top: -30px;
+      right: -30px;
+      width: 220px;
+      height: 220px;
+      pointer-events: none;
+      z-index: 1;
+    }
+    .c-ring {
+      position: absolute;
+      border-radius: 50%;
+      border: 1px solid rgba(175, 221, 255, 0.14);
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      animation: ring-pulse 7s ease-in-out infinite alternate;
+    }
+    .c-ring.r1 { width: 80px; height: 80px; animation-delay: 0s; }
+    .c-ring.r2 { width: 140px; height: 140px; animation-delay: 1.5s; }
+    .c-ring.r3 { width: 200px; height: 200px; animation-delay: 3s; }
+    @keyframes ring-pulse {
+      0% { transform: translate(-50%, -50%) scale(0.95); opacity: 0.35; border-color: rgba(175, 221, 255, 0.1); }
+      100% { transform: translate(-50%, -50%) scale(1.05); opacity: 0.85; border-color: rgba(175, 221, 255, 0.3); }
+    }
+
+    /* ==========================================================================
+       SECTION 3: WHAT REVIVE STANDS FOR (id="principles") — 2x2 KEYWORD CARDS
+       ========================================================================== */
+    .sec-principles {
+      padding: 90px 0;
+      position: relative;
+    }
+    .principles-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 16px;
+      margin-top: 20px;
+    }
+    .principle-card {
+      min-height: 220px;
+      padding: 34px 30px;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+    }
+    .keyword-top {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 14px;
+    }
+    .keyword-word {
+      font-size: clamp(30px, 5vw, 60px);
+      font-weight: 500;
+      letter-spacing: -0.05em;
+      line-height: 1;
+      color: #FFFFFF;
+      transition: color 0.3s ease, text-shadow 0.3s ease;
+    }
+    .glass-card:hover .keyword-word {
+      color: var(--accent);
+      text-shadow: 0 0 24px rgba(175, 221, 255, 0.4);
+    }
+    .keyword-glow-dot {
+      width: 7px;
+      height: 7px;
+      border-radius: 50%;
+      background: var(--accent);
+      box-shadow: 0 0 10px var(--accent);
+      animation: dot-pulse 3s ease-in-out infinite alternate;
+      flex-shrink: 0;
+    }
+    @keyframes dot-pulse {
+      0% { opacity: 0.4; transform: scale(0.85); box-shadow: 0 0 5px var(--accent); }
+      100% { opacity: 1; transform: scale(1.2); box-shadow: 0 0 14px var(--accent); }
+    }
+    .principle-muted {
+      font-size: 14px;
+      color: var(--muted);
+      line-height: 1.7;
+    }
+
+    /* ==========================================================================
+       SECTION 4: REVIVE IN ACTION (id="demo") — 3 INTERACTIVE TABS & PANEL
+       ========================================================================== */
+    .sec-demo {
+      padding: 90px 0;
+      position: relative;
+    }
+
+    /* Centered Segmented Pill Tabs */
+    .demo-tabs-wrap {
       display: flex;
       justify-content: center;
-      align-items: center;
-      margin: 32px auto 0;
+      margin: 0 auto 32px;
     }
-    .preview-tab-pill {
+    .demo-tabs-pill {
       display: inline-flex;
       align-items: center;
       background: rgba(255, 255, 255, 0.03);
@@ -657,12 +746,12 @@ const html = `<!DOCTYPE html>
       padding: 4px;
       gap: 4px;
     }
-    .preview-pill-btn {
+    .demo-tab-btn {
       font-family: var(--font-mono);
       font-size: 11px;
       letter-spacing: 0.08em;
       text-transform: uppercase;
-      padding: 8px 18px;
+      padding: 8px 20px;
       border-radius: 999px;
       border: 1px solid transparent;
       color: var(--muted);
@@ -671,48 +760,79 @@ const html = `<!DOCTYPE html>
       transition: all 0.2s var(--ease);
       white-space: nowrap;
     }
-    .preview-pill-btn:hover { color: #fff; background: rgba(255, 255, 255, 0.04); }
-    .preview-pill-btn.active {
+    .demo-tab-btn:hover {
+      color: #FFFFFF;
+      background: rgba(255, 255, 255, 0.04);
+    }
+    .demo-tab-btn.active {
       color: var(--accent);
       background: var(--accent-wash);
       border-color: var(--accent-line);
-      box-shadow: 0 0 12px rgba(175, 221, 255, 0.15);
+      box-shadow: 0 0 14px rgba(175, 221, 255, 0.18);
     }
 
-    /* Stage Container */
-    .preview-frame {
-      width: 100%;
-      max-width: 840px;
-      margin: 28px auto 0;
-      border-radius: 18px;
-      border: 1px solid var(--hud-border);
-      background: var(--bg-deep);
-      overflow: hidden;
+    /* Big Rounded 28px Panel (Min-height 560px, Faint Blue Glow, 1px Edge Line) */
+    .demo-panel {
       position: relative;
+      width: 100%;
+      max-width: 900px;
+      margin: 0 auto;
+      border-radius: 28px;
+      border: 1px solid var(--hair);
+      background: var(--surface);
+      min-height: 560px;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      padding: 50px 32px;
       box-shadow: 0 25px 70px rgba(0, 0, 0, 0.8), 0 0 45px rgba(40, 95, 160, 0.15);
     }
-    .preview-frame::before {
+    .demo-panel::before {
       content: "";
       position: absolute;
       top: 0;
-      left: 10%;
-      right: 10%;
+      left: 15%;
+      right: 15%;
       height: 1px;
       background: linear-gradient(90deg, transparent, rgba(175, 221, 255, 0.5), transparent);
+      z-index: 3;
     }
-    .preview-stage {
-      padding: 40px 24px;
-      min-height: 420px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      background: radial-gradient(ellipse 70% 60% at 50% 50%, rgba(40, 95, 160, 0.14), transparent 75%), var(--bg-deep);
+    .demo-panel::after {
+      content: "";
+      position: absolute;
+      top: 0;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 60%;
+      height: 180px;
+      background: radial-gradient(ellipse 60% 80% at 50% 0%, rgba(175, 221, 255, 0.12), transparent 75%);
+      pointer-events: none;
+      z-index: 1;
     }
-    .tab-view { display: none; width: 100%; }
-    .tab-view.active { display: block; }
+    .demo-panel-video {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      opacity: 0.22;
+      pointer-events: none;
+      z-index: 1;
+    }
+    .demo-tab-view {
+      display: none;
+      width: 100%;
+      position: relative;
+      z-index: 5;
+    }
+    .demo-tab-view.active {
+      display: block;
+    }
 
     /* Tab 1: Breathing View */
-    .breath-col {
+    .breath-view-col {
       display: flex;
       flex-direction: column;
       align-items: center;
@@ -720,7 +840,7 @@ const html = `<!DOCTYPE html>
       max-width: 520px;
       margin: 0 auto;
     }
-    .breath-live-badge {
+    .breath-live-pill {
       display: inline-flex;
       align-items: center;
       gap: 6px;
@@ -729,28 +849,35 @@ const html = `<!DOCTYPE html>
       color: var(--accent);
       border: 1px solid var(--accent-line);
       background: var(--accent-wash);
-      padding: 3px 10px;
+      padding: 3px 12px;
       border-radius: 999px;
-      margin-bottom: 10px;
+      margin-bottom: 8px;
+    }
+    .breath-sublabel {
+      font-size: 11px;
+      color: var(--muted);
+      letter-spacing: 0.14em;
+      text-transform: uppercase;
+      margin-bottom: 12px;
     }
     .breath-ring-stage {
       position: relative;
-      width: 176px;
-      height: 176px;
-      margin: 18px 0 16px;
+      width: 230px;
+      height: 230px;
+      margin: 10px 0 16px;
       display: grid;
       place-items: center;
     }
     .breath-svg {
       position: absolute;
       inset: 0;
-      width: 176px;
-      height: 176px;
+      width: 230px;
+      height: 230px;
       transform: rotate(-90deg);
       pointer-events: none;
     }
     .breath-svg-track {
-      stroke: rgba(255, 255, 255, 0.06);
+      stroke: rgba(255, 255, 255, 0.08);
     }
     .breath-svg-progress {
       stroke: var(--accent);
@@ -759,11 +886,11 @@ const html = `<!DOCTYPE html>
       filter: drop-shadow(0 0 6px var(--accent));
     }
     .breath-inner-circle {
-      width: 110px;
-      height: 110px;
+      width: 130px;
+      height: 130px;
       border-radius: 50%;
-      background: radial-gradient(circle, var(--accent-core) 0%, var(--accent) 32%, rgba(175, 221, 255, 0.18) 70%, transparent 80%);
-      box-shadow: 0 0 28px rgba(175, 221, 255, 0.45);
+      background: radial-gradient(circle, #F2FAFF 0%, var(--accent) 32%, rgba(175, 221, 255, 0.18) 70%, transparent 80%);
+      box-shadow: 0 0 32px rgba(175, 221, 255, 0.45);
       display: grid;
       place-items: center;
       transform: scale(1);
@@ -771,36 +898,36 @@ const html = `<!DOCTYPE html>
       cursor: pointer;
     }
     .breath-sec-num {
-      font-size: 32px;
+      font-size: 38px;
       font-weight: 500;
-      color: #000;
+      color: #000000;
       line-height: 1;
     }
     .breath-phase-word {
-      font-size: 16px;
-      font-weight: 600;
-      letter-spacing: 0.2em;
+      font-size: 18px;
+      font-weight: 500;
+      letter-spacing: 0.18em;
       text-transform: uppercase;
       color: var(--accent);
       margin-bottom: 6px;
     }
     .breath-hint-line {
-      font-size: 12px;
+      font-size: 13px;
       color: var(--muted);
-      min-height: 18px;
-      margin-bottom: 14px;
+      min-height: 22px;
+      margin-bottom: 16px;
     }
     .breath-phase-dots {
       display: flex;
       align-items: center;
-      gap: 6px;
+      gap: 7px;
       margin-bottom: 22px;
     }
     .phase-dot {
       width: 6px;
       height: 6px;
       border-radius: 50%;
-      background: rgba(255, 255, 255, 0.2);
+      background: rgba(255, 255, 255, 0.22);
       transition: all 0.3s;
     }
     .phase-dot.active {
@@ -820,101 +947,117 @@ const html = `<!DOCTYPE html>
       font-size: 10px;
       letter-spacing: 0.08em;
       text-transform: uppercase;
-      padding: 5px 12px;
+      padding: 6px 14px;
       border-radius: 999px;
-      border: 1px solid var(--hud-border);
-      background: rgba(255, 255, 255, 0.02);
+      border: 1px solid var(--hair);
+      background: rgba(255, 255, 255, 0.03);
       color: var(--muted);
       cursor: pointer;
       transition: all 0.2s;
     }
-    .pattern-chip:hover { color: #fff; border-color: rgba(255, 255, 255, 0.3); }
+    .pattern-chip:hover {
+      color: #FFFFFF;
+      border-color: rgba(255, 255, 255, 0.25);
+    }
     .pattern-chip.active {
       border-color: var(--accent);
       color: var(--accent);
       background: var(--accent-wash);
     }
 
-    /* Tab 2: Focus Setup View */
+    /* Tab 2: Focus Setup View (THREE Counters Side by Side) */
     .focus-setup-col {
       display: flex;
       flex-direction: column;
       align-items: center;
-      max-width: 540px;
+      max-width: 680px;
       margin: 0 auto;
       text-align: center;
+      width: 100%;
     }
-    .stepper-grid {
+    .counters-grid {
       display: grid;
-      grid-template-columns: 1fr 1fr;
+      grid-template-columns: repeat(3, 1fr);
       gap: 16px;
       width: 100%;
-      margin-bottom: 24px;
+      margin-bottom: 28px;
     }
-    .stepper-card {
+    .counter-card {
       background: rgba(255, 255, 255, 0.02);
       border: 1px solid var(--hair);
-      border-radius: 14px;
-      padding: 18px;
+      border-radius: 18px;
+      padding: 18px 14px;
       display: flex;
       flex-direction: column;
       align-items: center;
     }
-    .stepper-box {
-      display: flex;
-      border: 1px solid var(--hud-border);
-      border-radius: 12px;
-      overflow: hidden;
-      width: 140px;
-      height: 68px;
-      margin: 10px 0;
-      background: rgba(255, 255, 255, 0.02);
-    }
-    .stepper-num {
-      flex: 1;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-    }
-    .stepper-num b {
-      font-size: 28px;
-      color: var(--accent);
-      line-height: 1;
-      text-shadow: 0 0 12px rgba(175, 221, 255, 0.45);
-    }
-    .stepper-num span {
-      font-size: 9px;
+    .counter-label {
+      font-size: 10px;
       color: var(--muted);
       text-transform: uppercase;
-      margin-top: 3px;
+      letter-spacing: 0.12em;
+      margin-bottom: 10px;
     }
-    .stepper-controls {
+    .counter-control-box {
       display: flex;
-      flex-direction: column;
-      border-left: 1px solid var(--hud-border);
-      width: 32px;
+      align-items: center;
+      justify-content: center;
+      gap: 12px;
+      margin-bottom: 10px;
     }
-    .stepper-btn {
-      flex: 1;
-      background: none;
-      border: 0;
-      color: var(--muted);
+    .counter-round-btn {
+      width: 34px;
+      height: 34px;
+      border-radius: 50%;
+      background: rgba(255, 255, 255, 0.03);
+      border: 1px solid var(--hair);
+      color: #FFFFFF;
+      font-family: var(--font-mono);
+      font-size: 15px;
       cursor: pointer;
       display: grid;
       place-items: center;
       transition: all 0.15s;
     }
-    .stepper-btn + .stepper-btn { border-top: 1px solid var(--hud-border); }
-    .stepper-btn:hover { background: rgba(175, 221, 255, 0.1); color: var(--accent); }
+    .counter-round-btn:hover {
+      background: var(--accent-wash);
+      border-color: var(--accent);
+      color: var(--accent);
+      transform: scale(1.05);
+    }
+    .counter-num-wrap {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      min-width: 60px;
+    }
+    .counter-val {
+      font-size: 32px;
+      font-weight: 500;
+      color: var(--accent);
+      line-height: 1;
+      text-shadow: 0 0 12px rgba(175, 221, 255, 0.45);
+    }
+    .counter-unit {
+      font-size: 9px;
+      letter-spacing: 0.1em;
+      color: var(--muted);
+      text-transform: uppercase;
+      margin-top: 4px;
+    }
+    .counter-caption {
+      font-size: 11px;
+      color: var(--muted);
+      line-height: 1.4;
+    }
 
-    /* Cycle Bar */
+    /* Proportional Bar of All Rounds */
     .cycle-bar-wrap {
       width: 100%;
-      margin-bottom: 10px;
+      margin-bottom: 12px;
     }
     .cycle-bar {
-      height: 8px;
+      height: 10px;
       width: 100%;
       border-radius: 999px;
       overflow: hidden;
@@ -937,25 +1080,26 @@ const html = `<!DOCTYPE html>
       display: flex;
       align-items: center;
       justify-content: center;
-      gap: 16px;
-      font-size: 10.5px;
+      gap: 20px;
+      font-size: 11px;
       color: var(--muted);
-      margin-top: 8px;
+      margin-top: 10px;
     }
     .cycle-key-item {
       display: flex;
       align-items: center;
-      gap: 6px;
+      gap: 7px;
     }
     .cycle-key-box {
       width: 8px;
       height: 8px;
       border-radius: 2px;
     }
-    .plan-summary-line {
-      font-size: 11.5px;
+    .focus-summary-line {
+      font-size: 13px;
       color: var(--accent);
-      margin-top: 16px;
+      margin-top: 14px;
+      font-weight: 500;
     }
 
     /* Tab 3: Custom Activities View */
@@ -963,25 +1107,27 @@ const html = `<!DOCTYPE html>
       display: flex;
       flex-direction: column;
       align-items: center;
-      max-width: 540px;
+      max-width: 580px;
       margin: 0 auto;
       width: 100%;
     }
-    .custom-type-chips {
+    .custom-chips-row {
       display: flex;
       align-items: center;
       gap: 8px;
-      margin-bottom: 14px;
+      margin-bottom: 18px;
+      flex-wrap: wrap;
+      justify-content: center;
     }
     .custom-type-chip {
       font-family: var(--font-mono);
-      font-size: 10.5px;
+      font-size: 11px;
       letter-spacing: 0.08em;
       text-transform: uppercase;
-      padding: 6px 14px;
+      padding: 6px 16px;
       border-radius: 999px;
-      border: 1px solid var(--hud-border);
-      background: rgba(255, 255, 255, 0.02);
+      border: 1px solid var(--hair);
+      background: rgba(255, 255, 255, 0.03);
       color: var(--muted);
       cursor: pointer;
       transition: all 0.2s;
@@ -993,355 +1139,262 @@ const html = `<!DOCTYPE html>
     }
     .custom-input-row {
       display: flex;
-      gap: 8px;
+      align-items: center;
+      gap: 10px;
       width: 100%;
-      margin-bottom: 14px;
+      margin-bottom: 16px;
     }
     .custom-input-text {
       flex: 1;
       background: rgba(255, 255, 255, 0.03);
-      border: 1px solid var(--hud-border);
+      border: 1px solid var(--hair);
       border-radius: 999px;
-      padding: 9px 16px;
+      padding: 10px 18px;
       font-family: var(--font-mono);
-      font-size: 11.5px;
-      color: #fff;
+      font-size: 12px;
+      color: #FFFFFF;
       outline: none;
+      transition: border-color 0.2s;
     }
-    .custom-input-text:focus { border-color: var(--accent); }
+    .custom-input-text:focus {
+      border-color: var(--accent);
+    }
     .custom-input-mins {
-      width: 75px;
+      width: 80px;
       background: rgba(255, 255, 255, 0.03);
-      border: 1px solid var(--hud-border);
+      border: 1px solid var(--hair);
       border-radius: 999px;
-      padding: 9px 12px;
+      padding: 10px 12px;
       font-family: var(--font-mono);
-      font-size: 11.5px;
-      color: #fff;
+      font-size: 12px;
+      color: #FFFFFF;
       text-align: center;
       outline: none;
     }
-    .custom-add-btn {
-      padding: 9px 18px;
+    .custom-badge-endit {
+      padding: 10px 14px;
+      border-radius: 999px;
+      background: rgba(175, 221, 255, 0.06);
+      border: 1px solid var(--accent-line);
+      color: var(--accent);
+      font-size: 11px;
+      white-space: nowrap;
+      display: none;
+    }
+    .custom-add-pill {
+      padding: 10px 20px;
       border-radius: 999px;
       background: var(--accent);
-      color: #000;
+      color: #000000;
       font-family: var(--font-mono);
       font-size: 11px;
-      font-weight: 600;
+      font-weight: 500;
       letter-spacing: 0.08em;
       text-transform: uppercase;
       border: 0;
       cursor: pointer;
       transition: all 0.2s;
       white-space: nowrap;
+      box-shadow: 0 0 14px rgba(175, 221, 255, 0.3);
     }
-    .custom-add-btn:hover { background: var(--accent-hi); }
+    .custom-add-pill:hover {
+      background: var(--accent-hover);
+      transform: translateY(-1px);
+    }
     .custom-list {
       display: flex;
       flex-direction: column;
-      gap: 7px;
+      gap: 8px;
       width: 100%;
       margin-top: 6px;
-      max-height: 140px;
+      max-height: 170px;
       overflow-y: auto;
     }
-    .custom-item-row {
+    .custom-row {
       display: flex;
       align-items: center;
       justify-content: space-between;
-      padding: 8px 14px;
+      padding: 10px 16px;
       border: 1px solid var(--hair);
-      border-radius: 10px;
+      border-radius: 12px;
       background: rgba(255, 255, 255, 0.02);
-      font-size: 11.5px;
+      font-size: 12px;
+      color: #FFFFFF;
       transition: opacity 0.3s;
-    }
-    .custom-item-empty {
-      padding: 12px;
-      border: 1px dashed var(--hud-border);
-      border-radius: 10px;
-      color: var(--muted);
-      font-size: 11px;
-      text-align: center;
     }
     .custom-del-btn {
       background: none;
       border: 0;
       color: var(--muted);
       cursor: pointer;
-      font-size: 13px;
+      font-size: 14px;
       padding: 0 4px;
       transition: color 0.2s;
     }
-    .custom-del-btn:hover { color: #fff; }
+    .custom-del-btn:hover {
+      color: #FFFFFF;
+    }
+    .custom-empty {
+      padding: 16px;
+      border: 1px dashed var(--hair);
+      border-radius: 12px;
+      color: var(--muted);
+      font-size: 12px;
+      text-align: center;
+    }
     .routine-total-line {
-      font-size: 11px;
+      font-size: 12px;
       color: var(--accent);
-      margin-top: 14px;
+      margin-top: 16px;
+      font-weight: 500;
+    }
+
+    /* Optional Wide 16:9 Demo */
+    .wide-demo-wrap {
+      width: 100%;
+      max-width: 900px;
+      margin: 40px auto 0;
+      aspect-ratio: 16/9;
+      border-radius: 20px;
+      border: 1px solid var(--hair);
+      overflow: hidden;
+      background: #000000;
+    }
+    .wide-demo-video {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
     }
 
     /* ==========================================================================
-       SECTION 3: SCIENCE OF FLOW STATE (id="workflow") & ROUND TIMELINE
+       SECTION 5: WAYS TO RECOVER (id="ways") — 2x2 GRID OF GLASS CARDS
        ========================================================================== */
-    .sec-wrap {
+    .sec-ways {
       padding: 90px 0;
       position: relative;
-      border-top: 1px solid var(--hair);
     }
-    .timeline-wrap {
-      max-width: 620px;
-      margin: 0 auto 40px;
-      width: 100%;
-    }
-    .timeline-segments {
-      display: flex;
-      gap: 8px;
-      width: 100%;
-      margin-bottom: 10px;
-    }
-    .timeline-pill {
-      font-size: 10.5px;
-      letter-spacing: 0.08em;
-      text-transform: uppercase;
-      padding: 6px 12px;
-      border-radius: 999px;
-      border: 1px solid var(--hud-border);
-      background: rgba(255, 255, 255, 0.02);
-      color: var(--muted);
-      text-align: center;
-      font-mono: var(--font-mono);
-    }
-    .timeline-pill.focus {
-      flex: 25;
-    }
-    .timeline-pill.rest {
-      flex: 5;
-      border-color: var(--accent-line);
-      color: var(--accent);
-      background: var(--accent-wash);
-    }
-    .timeline-track {
-      width: 100%;
-      height: 2px;
-      background: rgba(255, 255, 255, 0.08);
-      position: relative;
-      border-radius: 2px;
-      overflow: visible;
-    }
-    .timeline-fill {
-      height: 100%;
-      background: var(--accent);
-      border-radius: 2px;
-      animation: timeline-fill 14s linear infinite;
-      position: relative;
-      box-shadow: 0 0 8px var(--accent);
-    }
-    .timeline-dot {
-      position: absolute;
-      right: -3px;
-      top: -3px;
-      width: 8px;
-      height: 8px;
-      border-radius: 50%;
-      background: #fff;
-      box-shadow: 0 0 8px var(--accent), 0 0 14px var(--accent);
-    }
-    @keyframes timeline-fill {
-      0% { width: 0%; }
-      100% { width: 100%; }
-    }
-
-    .flow-cycle-grid {
+    .ways-grid {
       display: grid;
-      grid-template-columns: repeat(4, 1fr);
+      grid-template-columns: repeat(2, 1fr);
       gap: 16px;
+      margin-top: 24px;
     }
-    .flow-card {
-      background: var(--bg-card);
-      border: 1px solid var(--hair);
-      border-radius: 14px;
-      padding: 22px 18px;
-      transition: all 0.3s var(--ease);
-      position: relative;
-      cursor: pointer;
+    .way-card {
+      min-height: 250px;
+      padding: 32px 28px;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
     }
-    .flow-card:hover {
-      border-color: rgba(175, 221, 255, 0.45);
-      background: var(--bg-card-hover);
-      transform: translateY(-3px);
-      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.6), 0 0 20px rgba(175, 221, 255, 0.15);
-    }
-    .flow-icon-box {
+    .way-icon-tile {
       width: 44px;
       height: 44px;
-      border-radius: 12px;
+      border-radius: 14px;
       background: rgba(175, 221, 255, 0.06);
       border: 1px solid rgba(175, 221, 255, 0.22);
       display: grid;
       place-items: center;
-      margin-bottom: 14px;
+      margin-bottom: 18px;
       color: var(--accent);
-      transition: all 0.3s;
+      box-shadow: 0 0 14px rgba(175, 221, 255, 0.15);
     }
-    .flow-card:hover .flow-icon-box {
-      background: rgba(175, 221, 255, 0.12);
-      border-color: var(--accent);
-      box-shadow: 0 0 16px rgba(175, 221, 255, 0.35);
-    }
-    .flow-icon-box svg {
+    .way-icon-tile svg {
       width: 22px;
       height: 22px;
-      overflow: visible;
     }
-    .flow-meta-row {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      margin-bottom: 6px;
-    }
-    .flow-num {
-      font-size: 15px;
+    .way-title {
+      font-size: clamp(22px, 2.6vw, 30px);
       font-weight: 500;
-      color: var(--accent);
-    }
-    .flow-time-badge {
-      font-size: 9.5px;
-      letter-spacing: 0.1em;
-      text-transform: uppercase;
-      color: var(--accent);
-      font-mono: var(--font-mono);
-    }
-    .flow-card-title {
-      font-size: 14px;
-      font-weight: 500;
-      color: #fff;
-      margin-bottom: 6px;
-    }
-    .flow-card-desc {
-      font-size: 11.5px;
-      color: var(--muted);
-      line-height: 1.5;
-    }
-
-    /* ==========================================================================
-       SECTION 4 (NEW): WHAT REST LOOKS LIKE (id="rest")
-       ========================================================================== */
-    .rest-section {
-      padding: 90px 0;
-      position: relative;
-      border-top: 1px solid var(--hair);
-    }
-    .rest-cards-grid {
-      display: grid;
-      grid-template-columns: repeat(4, 1fr);
-      gap: 16px;
-      margin: 38px 0 28px;
-    }
-    .rest-card {
-      background: var(--bg-card);
-      border: 1px solid var(--hair);
-      border-radius: 20px;
-      padding: 24px 20px;
-      display: flex;
-      flex-direction: column;
-      justify-content: space-between;
-      transition: all 0.3s var(--ease);
-      position: relative;
-    }
-    .rest-card:hover {
-      border-color: rgba(175, 221, 255, 0.45);
-      background: var(--bg-card-hover);
-      transform: translateY(-3px);
-    }
-    .rest-icon-box {
-      width: 42px;
-      height: 42px;
-      border-radius: 12px;
-      background: rgba(175, 221, 255, 0.06);
-      border: 1px solid rgba(175, 221, 255, 0.25);
-      display: grid;
-      place-items: center;
-      margin-bottom: 16px;
-      color: var(--accent);
-      box-shadow: 0 0 14px rgba(175, 221, 255, 0.2);
-    }
-    .rest-icon-box svg {
-      width: 20px;
-      height: 20px;
-    }
-    .rest-card-title {
-      font-size: 16px;
-      font-weight: 500;
-      color: #fff;
+      color: #FFFFFF;
       margin-bottom: 8px;
+      letter-spacing: -0.02em;
     }
-    .rest-card-desc {
-      font-size: 12px;
+    .way-desc {
+      font-size: 13.5px;
       color: var(--muted);
-      line-height: 1.55;
-      margin-bottom: 20px;
+      line-height: 1.65;
+      margin-bottom: 22px;
     }
-    .rest-card-tag {
+    .way-tag {
       display: inline-block;
       align-self: flex-start;
-      padding: 4px 10px;
+      padding: 5px 12px;
       border-radius: 999px;
-      border: 1px solid var(--hud-border);
+      border: 1px solid var(--hair);
       color: var(--accent);
-      font-size: 9.5px;
-      letter-spacing: 0.08em;
+      font-size: 10px;
+      letter-spacing: 0.1em;
       text-transform: uppercase;
       background: rgba(175, 221, 255, 0.04);
+      font-weight: 500;
     }
-    .rest-toasts-strip {
-      border: 1px dashed var(--hud-border);
-      border-radius: 14px;
-      padding: 14px 20px;
-      display: flex;
+
+    /* Small Toasts Nudge Strip */
+    .nudges-strip {
+      display: inline-flex;
       align-items: center;
-      justify-content: space-between;
-      flex-wrap: wrap;
-      gap: 12px;
-      background: rgba(255, 255, 255, 0.015);
-    }
-    .rest-toast-item {
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      font-size: 11.5px;
+      justify-content: center;
+      gap: 10px;
+      padding: 12px 24px;
+      border-radius: 999px;
+      border: 1px solid var(--hair);
+      background: rgba(255, 255, 255, 0.02);
+      margin-top: 36px;
+      font-size: 12px;
       color: var(--muted);
+      flex-wrap: wrap;
     }
-    .rest-toast-item::before {
-      content: "";
-      width: 5px;
-      height: 5px;
+    .nudges-dot {
+      width: 6px;
+      height: 6px;
       border-radius: 50%;
       background: var(--accent);
-    }
-    .rest-toast-note {
-      font-size: 10px;
-      letter-spacing: 0.12em;
-      text-transform: uppercase;
-      color: var(--faint);
+      box-shadow: 0 0 8px var(--accent);
+      flex-shrink: 0;
     }
 
     /* ==========================================================================
-       SECTION 5 (NEW): CLOSING CTA DIRECTLY ABOVE FOOTER
+       SECTION 6: CLOSE CTA (Big Glass CTA Panel, 36px Radius)
        ========================================================================== */
-    .closing-cta-section {
-      padding: 90px 0;
+    .sec-close {
+      padding: 90px 0 110px;
       position: relative;
-      border-top: 1px solid var(--hair);
-      text-align: center;
     }
-    .closing-cta-content {
-      max-width: 660px;
+    .close-cta-panel {
+      position: relative;
+      max-width: 980px;
       margin: 0 auto;
+      border-radius: 36px;
+      border: 1px solid var(--hair);
+      background: rgba(255, 255, 255, 0.03);
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+      padding: 90px 32px;
+      text-align: center;
+      overflow: hidden;
+      box-shadow: 0 25px 80px rgba(0, 0, 0, 0.7);
+    }
+    .close-cta-panel::before {
+      content: "";
+      position: absolute;
+      top: 0;
+      left: 15%;
+      right: 15%;
+      height: 1px;
+      background: linear-gradient(90deg, transparent, rgba(175, 221, 255, 0.4), transparent);
+    }
+    .close-title {
+      font-size: clamp(28px, 4.4vw, 56px);
+      font-weight: 500;
+      letter-spacing: -0.03em;
+      line-height: 1.15;
+      color: #FFFFFF;
+      max-width: 18ch;
+      margin: 20px auto 32px;
     }
 
     /* ==========================================================================
-       SECTION 6: COMPACT SPLASH SCREEN FOOTER (KEEP EXACT & UNTOUCHED)
+       SECTION 7: COMPACT SPLASH SCREEN FOOTER (KEEP EXACT & AS LAST ELEMENT)
        ========================================================================== */
     .splash-footer-wrap {
       position: relative;
@@ -1350,7 +1403,7 @@ const html = `<!DOCTYPE html>
       overflow: hidden;
       border-top: none;
       background: radial-gradient(ellipse 45% 38% at 50% 50%, rgba(40, 95, 160, 0.22), transparent 70%);
-      cursor: pointer;
+      cursor: default;
     }
     .splash-footer-wrap .jf {
       position: absolute;
@@ -1384,19 +1437,6 @@ const html = `<!DOCTYPE html>
       height: auto;
       max-height: 220px;
     }
-    .splash-replay-hint {
-      position: absolute;
-      bottom: 14px;
-      left: 0;
-      right: 0;
-      text-align: center;
-      font-size: 9.5px;
-      letter-spacing: 0.16em;
-      text-transform: uppercase;
-      color: var(--faint);
-      pointer-events: none;
-      z-index: 60;
-    }
 
     .site-subfooter {
       background: rgba(0, 0, 0, 0.65);
@@ -1428,7 +1468,7 @@ const html = `<!DOCTYPE html>
     .modal-backdrop.open { display: grid; }
     .dl-modal {
       background: #020407;
-      border: 1px solid var(--hud-border);
+      border: 1px solid rgba(255, 255, 255, 0.14);
       border-radius: 18px;
       width: 100%;
       max-width: 480px;
@@ -1451,7 +1491,16 @@ const html = `<!DOCTYPE html>
       place-items: center;
       transition: all 0.2s;
     }
-    .modal-close:hover { color: #fff; border-color: var(--accent); }
+    .modal-close:hover { color: #FFFFFF; border-color: var(--accent); }
+    .modal-brand-header {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 8px;
+    }
+    .modal-brand-header .brand-wordmark {
+      font-size: 30px;
+    }
     .modal-os-tabs {
       display: flex;
       gap: 8px;
@@ -1461,7 +1510,7 @@ const html = `<!DOCTYPE html>
       flex: 1;
       padding: 10px;
       border-radius: 8px;
-      border: 1px solid var(--hud-border);
+      border: 1px solid rgba(255, 255, 255, 0.14);
       background: rgba(255, 255, 255, 0.02);
       color: var(--muted);
       font-family: var(--font-mono);
@@ -1523,27 +1572,76 @@ const html = `<!DOCTYPE html>
     .toast-notice.show { transform: translateY(0); }
 
     /* ==========================================================================
-       RESPONSIVE RULES (DOWN TO 400PX WITH ZERO OVERFLOW)
+       RESPONSIVENESS (Down to 400px with ZERO Horizontal Scroll)
        ========================================================================== */
-    @media (max-width: 820px) {
-      .hud-marker, .hud-box { display: none; }
-      .nav-center-links { display: none; }
-      .why-strips { grid-template-columns: 1fr; }
-      .flow-cycle-grid { grid-template-columns: 1fr 1fr; }
-      .rest-cards-grid { grid-template-columns: 1fr 1fr; }
+    @media (max-width: 900px) {
+      .bento-grid {
+        grid-template-columns: 1fr;
+      }
+      .bento-card-1 {
+        grid-column: span 1;
+        grid-row: span 1;
+        min-height: auto;
+      }
+      .bento-card-2, .bento-card-3 {
+        grid-column: span 1;
+        min-height: auto;
+      }
+      .counters-grid {
+        grid-template-columns: 1fr;
+      }
     }
+
+    @media (max-width: 768px) {
+      .nav-links {
+        display: none;
+      }
+      .nav-pill {
+        padding: 6px 14px;
+      }
+      .hero-section {
+        padding-top: 100px;
+      }
+      .principles-grid {
+        grid-template-columns: 1fr;
+      }
+      .ways-grid {
+        grid-template-columns: 1fr;
+      }
+    }
+
     @media (max-width: 580px) {
-      .container { padding: 0 16px; }
-      .stepper-grid { grid-template-columns: 1fr; }
-      .preview-pill-btn { font-size: 9.5px; padding: 6px 10px; }
-      .download-row { flex-direction: column; width: 100%; }
-      .dl-btn { width: 100%; justify-content: center; }
-      .timeline-segments { flex-direction: column; }
-    }
-    @media (max-width: 480px) {
-      .rest-cards-grid { grid-template-columns: 1fr; }
-      .flow-cycle-grid { grid-template-columns: 1fr; }
-      .why-strip { height: 120px; }
+      .container {
+        padding: 0 16px;
+      }
+      .hero-cta-row {
+        flex-direction: column;
+        width: 100%;
+      }
+      .pill-btn {
+        width: 100%;
+        justify-content: center;
+      }
+      .demo-tabs-pill {
+        width: 100%;
+        justify-content: center;
+      }
+      .demo-tab-btn {
+        font-size: 9.5px;
+        padding: 6px 10px;
+      }
+      .custom-input-row {
+        flex-direction: column;
+      }
+      .custom-input-mins {
+        width: 100%;
+      }
+      .custom-add-pill {
+        width: 100%;
+      }
+      .close-cta-panel {
+        padding: 60px 20px;
+      }
     }
 
     /* Respect Reduced Motion */
@@ -1554,92 +1652,83 @@ const html = `<!DOCTYPE html>
         transition-duration: 0.01ms !important;
         scroll-behavior: auto !important;
       }
-      .timeline-fill { width: 100% !important; animation: none !important; }
       .ambience-layer { display: none !important; }
-      .strip-overlay { opacity: 1 !important; animation: none !important; }
-      .strip-ring { transform: scale(1) !important; animation: none !important; }
-      .strip-toast { transform: translateX(0) !important; opacity: 1 !important; animation: none !important; }
+      .marquee-track { animation: none !important; }
+      .horizon-glow { animation: none !important; opacity: 0.75 !important; }
+      .rhythm-svg circle { display: none !important; }
+      html.js-ready .reveal-section {
+        opacity: 1 !important;
+        transform: none !important;
+        transition: none !important;
+      }
     }
   </style>
 </head>
 <body>
 
-  <!-- Ambient Sparse Starfield & Motes Layer (Fixed Across Complete Page) -->
-  <div class="ambience-layer" id="ambience-layer">
-    <div class="stars" id="stars"></div>
-    <div id="motes"></div>
+  <!-- Sparse Fixed Ambience Layer: ~18 faint twinkling stars and 4 slow drifting motes -->
+  <div class="ambience-layer" id="ambience-layer" aria-hidden="true">
+    <div id="stars-wrap"></div>
+    <div id="motes-wrap"></div>
   </div>
 
-  <!-- Ambient HUD Margins & Corners -->
-  <div class="hud-box" style="top: 80px; left: 30px;"></div>
-  <div class="hud-box" style="top: 80px; right: 30px;"></div>
-  <div class="hud-marker" style="top: 140px; left: 34px;">+</div>
-  <div class="hud-marker" style="top: 140px; right: 34px;">+</div>
-  <div class="hud-marker" style="top: 50%; left: 24px;">+</div>
-  <div class="hud-marker" style="top: 50%; right: 24px;">+</div>
-
   <!-- ========================================================================
-       TOP NAVIGATION
+       TOP FLOATING NAV PILL
        ======================================================================== -->
-  <header class="nav-bar">
-    <div class="container nav-container">
-      <a href="#hero" class="nav-brand">
-        <span class="brand-indicator"></span>
-        <span class="brand-name">Revive</span>
+  <header class="nav-floating-wrap">
+    <nav class="nav-pill" aria-label="Main Navigation">
+      <a href="#hero" class="nav-brand" aria-label="Revive Home">
+        <span class="glowing-dot"></span>
+        <span class="brand-wordmark">Revive</span>
       </a>
 
-      <!-- 4-Link Center Nav with "Why Revive" -->
-      <div class="nav-center-links">
-        <a href="#why" class="nav-link">Why Revive</a>
-        <a href="#preview-section" class="nav-link">Revive in Action</a>
-        <a href="#workflow" class="nav-link">Workflow</a>
-        <a href="#rest" class="nav-link">Rest</a>
+      <div class="nav-links">
+        <a href="#premise" class="nav-link">Why Revive</a>
+        <a href="#principles" class="nav-link">Principles</a>
+        <a href="#demo" class="nav-link">Revive in Action</a>
+        <a href="#ways" class="nav-link">Ways to recover</a>
       </div>
 
-      <div class="nav-actions">
-        <button type="button" class="nav-btn" onclick="openDownloadModal('win')">
-          <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor"><path d="M0 3.449L9.75 2.1v9.451H0m10.949-9.602L24 0v11.551H10.949M0 12.6h9.75v9.451L0 20.699M10.949 12.6H24V24l-13.051-1.802"/></svg>
-          Windows
-        </button>
-        <button type="button" class="nav-btn" onclick="openDownloadModal('mac')">
-          <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor"><path d="M18.71 19.5c-.83 1.24-1.71 2.45-3.05 2.47-1.34.03-1.77-.79-3.29-.79-1.53 0-2 .77-3.27.82-1.31.05-2.3-1.32-3.14-2.53C4.25 17 2.94 12.45 4.7 9.39c.87-1.52 2.43-2.48 4.12-2.51 1.28-.02 2.5.87 3.29.87.78 0 2.26-1.07 3.81-.91.65.03 2.47.26 3.64 1.98-.09.06-2.17 1.28-2.15 3.81.03 3.02 2.65 4.03 2.68 4.04-.03.07-.42 1.44-1.38 2.83M15.97 6.4c.59-.72.99-1.72.88-2.73-.85.03-1.89.57-2.5 1.28-.54.63-.99 1.65-.87 2.64.95.07 1.91-.47 2.49-1.19z"/></svg>
-          macOS
-        </button>
-      </div>
-    </div>
+      <button type="button" class="nav-download-pill" onclick="openDownloadModal('win')">
+        Download
+      </button>
+    </nav>
   </header>
 
   <!-- ========================================================================
-       HERO SECTION
+       1) HERO SECTION
        ======================================================================== -->
   <section class="hero-section" id="hero">
-    <!-- Ambient video backdrop if file present -->
+    <!-- Cinematic background ambient video slot (removed gracefully if missing) -->
     <video class="hero-ambient-video" muted loop playsinline autoplay preload="auto" src="assets/ambient-drift.mp4" onerror="this.remove()"></video>
 
+    <!-- Breathing horizon glow at bottom edge (clipped inside hero) -->
+    <div class="horizon-glow"></div>
+
     <div class="container hero-content">
-      <div class="hero-badge" id="hero-badge">
-        <span class="brand-indicator"></span>
-        <span>Flow State Recovery · Windows & macOS</span>
+      <div class="pill-badge" style="margin-bottom: 24px;">
+        <span class="glowing-dot"></span>
+        <span>Sustainable flow · Windows & macOS</span>
       </div>
 
-      <h1 class="hero-title" id="hero-title">
-        Sustained focus.<br />
-        <span class="shimmer-text">Grounded in recovery.</span>
+      <h1 class="hero-title">
+        Sustainable flow<br />
+        starts with <span class="shimmer-text">recovery.</span>
       </h1>
 
-      <p class="hero-desc" id="hero-desc">
-        Revive protects your cognitive stamina. When your focus interval finishes, your screen gently shifts into a peaceful, distraction-free atmosphere for active rest, guided breathing, and physical renewal.
+      <p class="hero-desc">
+        Revive is a desktop app for people who do deep work and struggle to stop. When your focus time is up, it takes over your screen with a few minutes of guided recovery, then hands you back to your work. Do that every day and your focus becomes something you can sustain.
       </p>
 
-      <div class="download-row" id="hero-cta">
-        <button type="button" class="dl-btn primary" onclick="openDownloadModal('win')">
+      <div class="hero-cta-row">
+        <button type="button" class="pill-btn primary" onclick="openDownloadModal('win')">
           <svg viewBox="0 0 24 24" fill="currentColor">
             <path d="M0 3.449L9.75 2.1v9.451H0m10.949-9.602L24 0v11.551H10.949M0 12.6h9.75v9.451L0 20.699M10.949 12.6H24V24l-13.051-1.802"/>
           </svg>
           Download for Windows (.exe)
         </button>
 
-        <button type="button" class="dl-btn secondary" onclick="openDownloadModal('mac')">
+        <button type="button" class="pill-btn outline" onclick="openDownloadModal('mac')">
           <svg viewBox="0 0 24 24" fill="currentColor">
             <path d="M18.71 19.5c-.83 1.24-1.71 2.45-3.05 2.47-1.34.03-1.77-.79-3.29-.79-1.53 0-2 .77-3.27.82-1.31.05-2.3-1.32-3.14-2.53C4.25 17 2.94 12.45 4.7 9.39c.87-1.52 2.43-2.48 4.12-2.51 1.28-.02 2.5.87 3.29.87.78 0 2.26-1.07 3.81-.91.65.03 2.47.26 3.64 1.98-.09.06-2.17 1.28-2.15 3.81.03 3.02 2.65 4.03 2.68 4.04-.03.07-.42 1.44-1.38 2.83M15.97 6.4c.59-.72.99-1.72.88-2.73-.85.03-1.89.57-2.5 1.28-.54.63-.99 1.65-.87 2.64.95.07 1.91-.47 2.49-1.19z"/>
           </svg>
@@ -1647,409 +1736,410 @@ const html = `<!DOCTYPE html>
         </button>
       </div>
 
-      <div class="hero-specs" id="hero-specs">
-        <span>Windows 10 / 11 (64-bit)</span>
-        <span style="opacity:0.3;">·</span>
-        <span>macOS 12+ (Universal)</span>
+      <div class="hero-meta">
+        Windows 10 / 11 (64-bit) · macOS 12+ (Universal)
+      </div>
+
+      <!-- Glass Bar holding animated Rhythm Wave -->
+      <div class="rhythm-wave-bar">
+        <div class="rhythm-svg-wrap">
+          <svg class="rhythm-svg" viewBox="0 0 800 64" fill="none" preserveAspectRatio="xMidYMid meet">
+            <defs>
+              <filter id="waveGlow" x="-20%" y="-20%" width="140%" height="140%">
+                <feGaussianBlur stdDeviation="3" result="blur" />
+                <feMerge>
+                  <feMergeNode in="blur" />
+                  <feMergeNode in="SourceGraphic" />
+                </feMerge>
+              </filter>
+              <path id="rhythmTrack" d="M 30 24 L 165 24 C 180 24, 180 50, 190 50 C 200 50, 200 24, 215 24 L 350 24 C 365 24, 365 50, 375 50 C 385 50, 385 24, 400 24 L 535 24 C 550 24, 550 50, 560 50 C 570 50, 570 24, 585 24 L 720 24 C 735 24, 735 50, 745 50 C 755 50, 755 24, 770 24" />
+            </defs>
+
+            <!-- Focus lines (Thin grey) -->
+            <path d="M 30 24 L 165 24" stroke="rgba(255,255,255,0.22)" stroke-width="1.5" stroke-linecap="round" />
+            <path d="M 215 24 L 350 24" stroke="rgba(255,255,255,0.22)" stroke-width="1.5" stroke-linecap="round" />
+            <path d="M 400 24 L 535 24" stroke="rgba(255,255,255,0.22)" stroke-width="1.5" stroke-linecap="round" />
+            <path d="M 585 24 L 720 24" stroke="rgba(255,255,255,0.22)" stroke-width="1.5" stroke-linecap="round" />
+
+            <!-- Rest curves (Accent glowing curves) -->
+            <path d="M 165 24 C 180 24, 180 50, 190 50 C 200 50, 200 24, 215 24" stroke="var(--accent)" stroke-width="2.5" stroke-linecap="round" filter="url(#waveGlow)" />
+            <path d="M 350 24 C 365 24, 365 50, 375 50 C 385 50, 385 24, 400 24" stroke="var(--accent)" stroke-width="2.5" stroke-linecap="round" filter="url(#waveGlow)" />
+            <path d="M 535 24 C 550 24, 550 50, 560 50 C 570 50, 570 24, 585 24" stroke="var(--accent)" stroke-width="2.5" stroke-linecap="round" filter="url(#waveGlow)" />
+            <path d="M 720 24 C 735 24, 735 50, 745 50 C 755 50, 755 24, 770 24" stroke="var(--accent)" stroke-width="2.5" stroke-linecap="round" filter="url(#waveGlow)" />
+
+            <!-- Travelling Bright Dot on 18s Loop -->
+            <circle r="4.5" fill="#FFFFFF" filter="url(#waveGlow)">
+              <animateMotion dur="18s" repeatCount="indefinite">
+                <mpath href="#rhythmTrack" />
+              </animateMotion>
+            </circle>
+          </svg>
+        </div>
+
+        <div class="rhythm-labels">
+          <span>Focus 25</span>
+          <span class="label-sep">·</span>
+          <span class="rest-accent">Rest 5</span>
+          <span class="label-sep">·</span>
+          <span>minutes · 4 rounds · about 2 hours</span>
+        </div>
       </div>
     </div>
   </section>
+
+  <!-- Marquee strip between Hero and Section 2 -->
+  <div class="marquee-strip" aria-hidden="true">
+    <div class="marquee-track">
+      <div class="marquee-content">
+        <span>Sustainable</span>
+        <span>·</span>
+        <span>Restorative</span>
+        <span>·</span>
+        <span>Rhythmic</span>
+        <span>·</span>
+        <span>Gentle</span>
+        <span>·</span>
+        <span>Recovery is part of the work</span>
+        <span>·</span>
+      </div>
+      <div class="marquee-content">
+        <span>Sustainable</span>
+        <span>·</span>
+        <span>Restorative</span>
+        <span>·</span>
+        <span>Rhythmic</span>
+        <span>·</span>
+        <span>Gentle</span>
+        <span>·</span>
+        <span>Recovery is part of the work</span>
+        <span>·</span>
+      </div>
+    </div>
+  </div>
 
   <!-- ========================================================================
-       SECTION 1 (NEW): WHY REVIVE (id="why")
+       2) WHY REVIVE (id="premise")
        ======================================================================== -->
-  <section class="why-section" id="why">
-    <div class="container text-center">
-      <span class="sec-tag">Why it exists</span>
-      <h2 class="sec-title split-text-anim">
-        You already know you should take breaks. <span class="shimmer-text">You just don't.</span>
-      </h2>
-      <p class="sec-desc">
-        A reminder is easy to dismiss, so deep work swallows it. Revive waits until your focus time is up, then takes over every screen with something short to do. Nothing to remember. Nothing to argue with.
-      </p>
-
-      <!-- Two Compact Strips (~112px tall) -->
-      <div class="why-strips">
-        <!-- Left Strip: A normal reminder (Ignored) -->
-        <div class="why-strip-card">
-          <div class="why-strip">
-            <div class="strip-topbar">
-              <div class="strip-dots">
-                <span class="strip-dot"></span>
-                <span class="strip-dot"></span>
-                <span class="strip-dot"></span>
-              </div>
-              <div class="strip-labels">
-                <span class="strip-tag-muted">A normal reminder · Ignored</span>
-              </div>
-              <div class="strip-timer-tag">Focus · 24:58</div>
-            </div>
-
-            <!-- Horizontal work lines gently stretching & shrinking -->
-            <div class="strip-work-lines">
-              <div class="strip-work-line l1"></div>
-              <div class="strip-work-line l2"></div>
-              <div class="strip-work-line l3"></div>
-            </div>
-
-            <!-- Toast sliding in from top-right then sliding out -->
-            <div class="strip-toast">
-              <span>Time for a break?</span>
-              <span class="strip-toast-dismiss">Dismiss</span>
-            </div>
-          </div>
-          <p class="strip-caption text-center">
-            One click and it is gone. You keep working, and the break never happens.
-          </p>
-        </div>
-
-        <!-- Right Strip: Revive (Takes over) -->
-        <div class="why-strip-card">
-          <div class="why-strip revive-takeover">
-            <div class="strip-topbar">
-              <div class="strip-dots">
-                <span class="strip-dot" style="background:var(--accent);"></span>
-                <span class="strip-dot"></span>
-                <span class="strip-dot"></span>
-              </div>
-              <div class="strip-labels">
-                <span class="strip-tag-accent">Revive · Takes over</span>
-              </div>
-              <div class="strip-timer-tag">Focus · 24:58</div>
-            </div>
-
-            <!-- Background work lines running beneath takeover -->
-            <div class="strip-work-lines">
-              <div class="strip-work-line l1"></div>
-              <div class="strip-work-line l2"></div>
-              <div class="strip-work-line l3"></div>
-            </div>
-
-            <!-- 12s Takeover Overlay -->
-            <div class="strip-overlay">
-              <!-- Video slot under ring if available -->
-              <video class="strip-video" muted loop playsinline autoplay preload="auto" src="assets/rest-breath.mp4" onerror="this.remove()"></video>
-              <div class="strip-rest-label">Rest · 5:00</div>
-              <div class="strip-ring"></div>
-              <div class="strip-breath-text" id="strip-breath-txt">Breathe in</div>
-            </div>
-          </div>
-          <p class="strip-caption text-center">
-            The screen belongs to your rest. It hands back control when the rest is done.
-          </p>
-        </div>
-      </div>
-    </div>
-  </section>
-
-  <!-- ========================================================================
-       SECTION 2: REVIVE IN ACTION — UPGRADED CENTERED SEGMENTED PILL & TABS
-       ======================================================================== -->
-  <section class="preview-section" id="preview-section">
-    <div class="container text-center">
-      <span class="sec-tag">Interactive Preview</span>
-      <h2 class="sec-title split-text-anim">Revive in Action</h2>
-      <p class="sec-desc">Test the breathing guidance, configure your sprint intervals, and build your custom active rest routines.</p>
-
-      <!-- Centered One Segmented Pill Tab Bar -->
-      <div class="preview-tab-pill-wrap">
-        <div class="preview-tab-pill" role="tablist">
-          <button class="preview-pill-btn active" id="tab-btn-breathing" role="tab" onclick="switchTab('breathing')">1. Breathing</button>
-          <button class="preview-pill-btn" id="tab-btn-session" role="tab" onclick="switchTab('session')">2. Focus Setup</button>
-          <button class="preview-pill-btn" id="tab-btn-custom" role="tab" onclick="switchTab('custom')">3. Custom Activities</button>
-        </div>
-      </div>
-
-      <!-- Preview Window Frame -->
-      <div class="preview-frame" id="preview-frame">
-        <div class="preview-stage">
-
-          <!-- TAB 1: BREATHING (All Centered in a Column) -->
-          <div class="tab-view active" id="view-breathing">
-            <div class="breath-col">
-              <div class="breath-live-badge">
-                <span class="brand-indicator" style="width:5px;height:5px;"></span>
-                <span>LIVE</span>
-              </div>
-              <span class="caps" style="font-size:10.5px;color:var(--muted);letter-spacing:0.16em;">Guided Diaphragmatic Breath</span>
-
-              <!-- 176px Ring with Thin Progress Arc + Inner Scaled Circle -->
-              <div class="breath-ring-stage">
-                <svg class="breath-svg" viewBox="0 0 176 176">
-                  <circle class="breath-svg-track" cx="88" cy="88" r="82" fill="none" stroke-width="2" />
-                  <circle class="breath-svg-progress" id="breath-arc" cx="88" cy="88" r="82" fill="none" stroke-width="2.5" stroke-dasharray="515" stroke-dashoffset="515" />
-                </svg>
-
-                <div class="breath-inner-circle" id="live-orb" title="Click to cycle breath phase" onclick="advanceBreathPhase()">
-                  <span class="breath-sec-num" id="live-sec">4</span>
-                </div>
-              </div>
-
-              <div class="breath-phase-word" id="live-phase">INHALE</div>
-              <p class="breath-hint-line" id="live-cue">Expand diaphragm slowly · Rest your eyes</p>
-
-              <!-- Phase Tracking Dots -->
-              <div class="breath-phase-dots" id="breath-phase-dots">
-                <span class="phase-dot active"></span>
-                <span class="phase-dot"></span>
-                <span class="phase-dot"></span>
-                <span class="phase-dot"></span>
-              </div>
-
-              <!-- 3 Pattern Chips -->
-              <div class="breath-chips">
-                <button type="button" class="pattern-chip active" id="chip-box" onclick="selectPattern('box')">Box 4·4·4·4</button>
-                <button type="button" class="pattern-chip" id="chip-478" onclick="selectPattern('478')">4-7-8</button>
-                <button type="button" class="pattern-chip" id="chip-coherence" onclick="selectPattern('coherence')">Coherence 5·5</button>
-              </div>
-            </div>
-          </div>
-
-          <!-- TAB 2: FOCUS SETUP (Centered) -->
-          <div class="tab-view" id="view-session">
-            <div class="focus-setup-col">
-              <div class="stepper-grid">
-                <div class="stepper-card">
-                  <span class="caps" style="font-size:10px;color:var(--muted);">Focus Interval</span>
-                  <div class="stepper-box">
-                    <div class="stepper-num">
-                      <b id="val-focus">25</b>
-                      <span>Mins</span>
-                    </div>
-                    <div class="stepper-controls">
-                      <button type="button" class="stepper-btn" onclick="stepVal('focus', 5)">▲</button>
-                      <button type="button" class="stepper-btn" onclick="stepVal('focus', -5)">▼</button>
-                    </div>
-                  </div>
-                  <p style="font-size:11px;color:var(--muted);">Deep concentration</p>
-                </div>
-
-                <div class="stepper-card">
-                  <span class="caps" style="font-size:10px;color:var(--muted);">Active Rest</span>
-                  <div class="stepper-box">
-                    <div class="stepper-num">
-                      <b id="val-rest">5</b>
-                      <span>Mins</span>
-                    </div>
-                    <div class="stepper-controls">
-                      <button type="button" class="stepper-btn" onclick="stepVal('rest', 1)">▲</button>
-                      <button type="button" class="stepper-btn" onclick="stepVal('rest', -1)">▼</button>
-                    </div>
-                  </div>
-                  <p style="font-size:11px;color:var(--muted);">Gentle screen pause</p>
-                </div>
-              </div>
-
-              <!-- Proportional 4-Cycle Bar (Focus faint white, Rest accent) -->
-              <div class="cycle-bar-wrap">
-                <div class="cycle-bar" id="cycle-bar-segments">
-                  <!-- Generated dynamically in JS based on fVal & rVal -->
-                </div>
-                <div class="cycle-key">
-                  <div class="cycle-key-item">
-                    <span class="cycle-key-box" style="background:rgba(255,255,255,0.22);"></span>
-                    <span>Focus Segment</span>
-                  </div>
-                  <div class="cycle-key-item">
-                    <span class="cycle-key-box" style="background:var(--accent);"></span>
-                    <span>Active Rest</span>
-                  </div>
-                </div>
-              </div>
-
-              <!-- Computed Plan Line -->
-              <p class="plan-summary-line" id="val-summary">
-                Plan: 4 focus cycles · 4 active rest breaks (~2 hours total)
-              </p>
-            </div>
-          </div>
-
-          <!-- TAB 3: CUSTOM ACTIVITIES (Centered) -->
-          <div class="tab-view" id="view-custom">
-            <div class="custom-act-col">
-              <span class="caps" style="font-size:10.5px;color:var(--accent);margin-bottom:12px;">Create Custom Rest Routine</span>
-
-              <div class="custom-type-chips">
-                <button type="button" class="custom-type-chip active" onclick="selectActChip(this, 'Breath')">Breath</button>
-                <button type="button" class="custom-type-chip" onclick="selectActChip(this, 'Stretch')">Stretch</button>
-                <button type="button" class="custom-type-chip" onclick="selectActChip(this, 'Spotify')">Spotify</button>
-                <button type="button" class="custom-type-chip" onclick="selectActChip(this, 'Custom')">Custom</button>
-              </div>
-
-              <div class="custom-input-row">
-                <input type="text" id="custom-act-name" class="custom-input-text" placeholder="e.g. Neck mobility & hydrate" />
-                <input type="number" id="custom-act-mins" class="custom-input-mins" value="5" min="1" max="60" />
-                <button type="button" class="custom-add-btn" onclick="addCustomActivity()">+ Add to Routine</button>
-              </div>
-
-              <div class="custom-list" id="custom-list">
-                <!-- Starts with the 2 preset rows -->
-                <div class="custom-item-row" data-mins="5">
-                  <span>Box Breathing Routine (Breath) · 5 mins</span>
-                  <button type="button" class="custom-del-btn" onclick="removeCustomItem(this)" title="Remove">✕</button>
-                </div>
-                <div class="custom-item-row" data-mins="5">
-                  <span>Spinal Decompression & Walk (Stretch) · 5 mins</span>
-                  <button type="button" class="custom-del-btn" onclick="removeCustomItem(this)" title="Remove">✕</button>
-                </div>
-              </div>
-
-              <div class="routine-total-line" id="routine-total-line">
-                Routine total: 10 mins · 2 activities
-              </div>
-            </div>
-          </div>
-
-        </div>
-      </div>
-    </div>
-  </section>
-
-  <!-- Optional Wide 16:9 Demo Section (Only shown if assets/demo.mp4 loads) -->
-  <section class="sec-wrap" id="demo-section" style="display:none;padding-bottom:0;">
-    <div class="container text-center">
-      <div style="width:100%;max-width:840px;margin:0 auto;aspect-ratio:16/9;border-radius:18px;border:1px solid var(--hud-border);overflow:hidden;background:#000;">
-        <video muted loop playsinline autoplay preload="auto" src="assets/demo.mp4" onloadeddata="document.getElementById('demo-section').style.display='block'" onerror="document.getElementById('demo-section').remove()" style="width:100%;height:100%;object-fit:cover;"></video>
-      </div>
-    </div>
-  </section>
-
-  <!-- ========================================================================
-       SECTION 3: THE SCIENCE OF FLOW STATE & ROUND TIMELINE (id="workflow")
-       ======================================================================== -->
-  <section class="sec-wrap" id="workflow">
+  <section class="sec-premise reveal-section" id="premise">
     <div class="container">
-      <div class="text-center" style="max-width:640px;margin:0 auto 36px;">
-        <span class="sec-tag">The Science of Flow State</span>
-        <h2 class="sec-title split-text-anim">Why Recovery Sustains Deep Work</h2>
-        <p class="sec-desc">
-          High-performance focus operates in natural biological waves. Incorporating intentional, active rest prevents dopamine exhaustion and preserves sharp cognitive stamina.
+      <div class="sec-head">
+        <span class="sec-label">Why I built Revive</span>
+        <h2 class="sec-title">
+          Flow is not the hard part.<br />
+          Staying in it, day after day, <span class="shimmer-text">is.</span>
+        </h2>
+      </div>
+
+      <div class="bento-grid">
+        <!-- Card 1: Spans 4 cols, 2 rows, with concentric rings -->
+        <div class="glass-card bento-card-1">
+          <div class="card-spotlight"></div>
+          <div class="concentric-rings" aria-hidden="true">
+            <span class="c-ring r1"></span>
+            <span class="c-ring r2"></span>
+            <span class="c-ring r3"></span>
+          </div>
+          <div>
+            <span class="card-num-label">01</span>
+            <h3 class="card-lead-text lg">Focus spends something real.</h3>
+            <p class="card-muted-text">
+              Deep work uses attention, patience and energy. Most of us know we should stop, and still keep going, because the work is right there and stopping feels like losing ground.
+            </p>
+          </div>
+        </div>
+
+        <!-- Card 2: Spans 2 cols -->
+        <div class="glass-card bento-card-2">
+          <div class="card-spotlight"></div>
+          <div>
+            <span class="card-num-label">02</span>
+            <h3 class="card-lead-text md">Sustainable productivity is a rhythm.</h3>
+          </div>
+          <p class="card-muted-text">
+            It is not a longer sprint. It is effort, then recovery, then effort again, a loop you can repeat tomorrow and the day after.
+          </p>
+        </div>
+
+        <!-- Card 3: Spans 2 cols -->
+        <div class="glass-card bento-card-3">
+          <div class="card-spotlight"></div>
+          <div>
+            <span class="card-num-label">03</span>
+            <h3 class="card-lead-text md">Recovery needs protecting.</h3>
+          </div>
+          <p class="card-muted-text">
+            So Revive looks after it for you. When your focus time ends, it moves you into rest, so you do not have to remember to stop or argue yourself into it.
+          </p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ========================================================================
+       3) WHAT REVIVE STANDS FOR (id="principles")
+       ======================================================================== -->
+  <section class="sec-principles reveal-section" id="principles">
+    <div class="container">
+      <div class="sec-head">
+        <span class="sec-label">What Revive stands for</span>
+        <h2 class="sec-title">
+          Four ideas the whole app is <span class="shimmer-text">built around.</span>
+        </h2>
+      </div>
+
+      <div class="principles-grid">
+        <!-- Keyword 1: Sustainable -->
+        <div class="glass-card principle-card">
+          <div class="card-spotlight"></div>
+          <div class="keyword-top">
+            <span class="keyword-word">Sustainable</span>
+            <span class="keyword-glow-dot"></span>
+          </div>
+          <p class="principle-muted">Focus you can repeat tomorrow, not only today.</p>
+        </div>
+
+        <!-- Keyword 2: Restorative -->
+        <div class="glass-card principle-card">
+          <div class="card-spotlight"></div>
+          <div class="keyword-top">
+            <span class="keyword-word">Restorative</span>
+            <span class="keyword-glow-dot"></span>
+          </div>
+          <p class="principle-muted">Rest that refills you, taken on purpose.</p>
+        </div>
+
+        <!-- Keyword 3: Rhythmic -->
+        <div class="glass-card principle-card">
+          <div class="card-spotlight"></div>
+          <div class="keyword-top">
+            <span class="keyword-word">Rhythmic</span>
+            <span class="keyword-glow-dot"></span>
+          </div>
+          <p class="principle-muted">Focus and recovery in a steady cycle that you set.</p>
+        </div>
+
+        <!-- Keyword 4: Gentle -->
+        <div class="glass-card principle-card">
+          <div class="card-spotlight"></div>
+          <div class="keyword-top">
+            <span class="keyword-word">Gentle</span>
+            <span class="keyword-glow-dot"></span>
+          </div>
+          <p class="principle-muted">Your screen eases into rest. No streaks, no scores, no grind.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ========================================================================
+       4) REVIVE IN ACTION (id="demo")
+       ======================================================================== -->
+  <section class="sec-demo reveal-section" id="demo">
+    <div class="container">
+      <div class="sec-head">
+        <span class="sec-label">Interactive preview</span>
+        <h2 class="sec-title">Revive in <span class="shimmer-text">Action</span></h2>
+        <p class="sec-lede">Test the breathing guidance, configure your sprint intervals, and build your custom active rest routines.</p>
+      </div>
+
+      <!-- Segmented Pill Tabs Centered Under Lede -->
+      <div class="demo-tabs-wrap">
+        <div class="demo-tabs-pill" role="tablist">
+          <button class="demo-tab-btn active" id="tab-btn-breathing" role="tab" onclick="switchDemoTab('breathing')">Breathing</button>
+          <button class="demo-tab-btn" id="tab-btn-focus" role="tab" onclick="switchDemoTab('focus')">Focus Setup</button>
+          <button class="demo-tab-btn" id="tab-btn-custom" role="tab" onclick="switchDemoTab('custom')">Custom Activities</button>
+        </div>
+      </div>
+
+      <!-- Big 28px Rounded Panel -->
+      <div class="demo-panel">
+        <!-- Video slot behind panel content -->
+        <video class="demo-panel-video" muted loop playsinline autoplay preload="auto" src="assets/rest-breath.mp4" onerror="this.remove()"></video>
+
+        <!-- TAB 1: BREATHING -->
+        <div class="demo-tab-view active" id="demo-view-breathing">
+          <div class="breath-view-col">
+            <div class="breath-live-pill">
+              <span class="glowing-dot" style="width:5px;height:5px;"></span>
+              <span>LIVE</span>
+            </div>
+            <div class="breath-sublabel">Guided Diaphragmatic Breath</div>
+
+            <!-- 230px Ring with Thin Progress Arc + Swelling/Shrinking Inner Circle -->
+            <div class="breath-ring-stage">
+              <svg class="breath-svg" viewBox="0 0 230 230">
+                <circle class="breath-svg-track" cx="115" cy="115" r="108" fill="none" stroke-width="2" />
+                <circle class="breath-svg-progress" id="breath-arc" cx="115" cy="115" r="108" fill="none" stroke-width="2.5" stroke-dasharray="679" stroke-dashoffset="679" />
+              </svg>
+
+              <div class="breath-inner-circle" id="breath-orb" title="Click to cycle breath phase" onclick="advanceBreathPhase()">
+                <span class="breath-sec-num" id="breath-sec">4</span>
+              </div>
+            </div>
+
+            <div class="breath-phase-word" id="breath-phase">INHALE</div>
+            <p class="breath-hint-line" id="breath-cue">Expand diaphragm slowly · Rest your eyes</p>
+
+            <div class="breath-phase-dots" id="breath-phase-dots"></div>
+
+            <div class="breath-chips">
+              <button type="button" class="pattern-chip active" id="chip-box" onclick="selectBreathPattern('box')">Box 4·4·4·4</button>
+              <button type="button" class="pattern-chip" id="chip-478" onclick="selectBreathPattern('478')">4-7-8</button>
+              <button type="button" class="pattern-chip" id="chip-coherence" onclick="selectBreathPattern('coherence')">Coherence 5·5</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- TAB 2: FOCUS SETUP -->
+        <div class="demo-tab-view" id="demo-view-focus">
+          <div class="focus-setup-col">
+            <div class="counters-grid">
+              <!-- Counter 1: Focus Interval -->
+              <div class="counter-card">
+                <span class="counter-label">Focus Interval</span>
+                <div class="counter-control-box">
+                  <button type="button" class="counter-round-btn" onclick="stepFocus(-5)">−</button>
+                  <div class="counter-num-wrap">
+                    <span class="counter-val" id="val-focus">25</span>
+                    <span class="counter-unit">MINS</span>
+                  </div>
+                  <button type="button" class="counter-round-btn" onclick="stepFocus(5)">+</button>
+                </div>
+                <p class="counter-caption">Deep, quiet concentration</p>
+              </div>
+
+              <!-- Counter 2: Active Rest -->
+              <div class="counter-card">
+                <span class="counter-label">Active Rest</span>
+                <div class="counter-control-box">
+                  <button type="button" class="counter-round-btn" onclick="stepRest(-1)">−</button>
+                  <div class="counter-num-wrap">
+                    <span class="counter-val" id="val-rest">5</span>
+                    <span class="counter-unit">MINS</span>
+                  </div>
+                  <button type="button" class="counter-round-btn" onclick="stepRest(1)">+</button>
+                </div>
+                <p class="counter-caption">Gentle screen pause</p>
+              </div>
+
+              <!-- Counter 3: Rounds -->
+              <div class="counter-card">
+                <span class="counter-label">Rounds</span>
+                <div class="counter-control-box">
+                  <button type="button" class="counter-round-btn" onclick="stepRounds(-1)">−</button>
+                  <div class="counter-num-wrap">
+                    <span class="counter-val" id="val-rounds">4</span>
+                    <span class="counter-unit">ROUNDS</span>
+                  </div>
+                  <button type="button" class="counter-round-btn" onclick="stepRounds(1)">+</button>
+                </div>
+                <p class="counter-caption">Focus and rest, repeated</p>
+              </div>
+            </div>
+
+            <!-- Proportional Bar of All Rounds -->
+            <div class="cycle-bar-wrap">
+              <div class="cycle-bar" id="cycle-bar-segments"></div>
+              <div class="cycle-key">
+                <div class="cycle-key-item">
+                  <span class="cycle-key-box" style="background:rgba(255,255,255,0.22);"></span>
+                  <span>Focus</span>
+                </div>
+                <div class="cycle-key-item">
+                  <span class="cycle-key-box" style="background:var(--accent);"></span>
+                  <span>Rest</span>
+                </div>
+              </div>
+            </div>
+
+            <p class="focus-summary-line" id="val-summary">
+              You'll have 4 rests · about 2h 00m
+            </p>
+          </div>
+        </div>
+
+        <!-- TAB 3: CUSTOM ACTIVITIES -->
+        <div class="demo-tab-view" id="demo-view-custom">
+          <div class="custom-act-col">
+            <span class="sec-label" style="margin-bottom: 12px; color: var(--accent);">Create custom rest routine</span>
+
+            <div class="custom-chips-row">
+              <button type="button" class="custom-type-chip active" onclick="selectActChip(this, 'Breathing')">Breathing</button>
+              <button type="button" class="custom-type-chip" onclick="selectActChip(this, 'Stretch')">Stretch</button>
+              <button type="button" class="custom-type-chip" onclick="selectActChip(this, 'Video')">Video</button>
+              <button type="button" class="custom-type-chip" onclick="selectActChip(this, 'Sound')">Sound</button>
+            </div>
+
+            <div class="custom-input-row">
+              <input type="text" id="custom-act-name" class="custom-input-text" placeholder="Activity name..." />
+              <input type="number" id="custom-act-mins" class="custom-input-mins" value="5" min="1" max="60" />
+              <span id="custom-badge-endit" class="custom-badge-endit">You end it</span>
+              <button type="button" class="custom-add-pill" onclick="addCustomActivity()">+ Add to routine</button>
+            </div>
+
+            <div class="custom-list" id="custom-list">
+              <div class="custom-row" data-type="Breathing" data-mins="5">
+                <span>Box Breathing (Breathing) · 5 mins</span>
+                <button type="button" class="custom-del-btn" onclick="removeCustomItem(this)" title="Remove">✕</button>
+              </div>
+              <div class="custom-row" data-type="Stretch" data-mins="5">
+                <span>Spinal Decompression & Walk (Stretch) · 5 mins</span>
+                <button type="button" class="custom-del-btn" onclick="removeCustomItem(this)" title="Remove">✕</button>
+              </div>
+            </div>
+
+            <div class="routine-total-line" id="routine-total-line">
+              Timed: 10 mins · 2 activities
+            </div>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- Optional Wide 16:9 Demo Video (Hidden until loadeddata fires) -->
+      <div class="wide-demo-wrap" id="wide-demo-wrap" style="display:none;">
+        <video class="wide-demo-video" muted loop playsinline autoplay preload="auto" src="assets/demo.mp4" onloadeddata="document.getElementById('wide-demo-wrap').style.display='block'" onerror="document.getElementById('wide-demo-wrap').remove()"></video>
+      </div>
+    </div>
+  </section>
+
+  <!-- ========================================================================
+       5) WAYS TO RECOVER (id="ways")
+       ======================================================================== -->
+  <section class="sec-ways reveal-section" id="ways">
+    <div class="container text-center">
+      <div class="sec-head">
+        <span class="sec-label">What recovery looks like</span>
+        <h2 class="sec-title">
+          A few ways to <span class="shimmer-text">actually switch off.</span>
+        </h2>
+        <p class="sec-lede">
+          Choose a default, or pick a different one for each rest. Build your own breathing pattern if the presets do not suit you.
         </p>
       </div>
 
-      <!-- Round Timeline: 25:5 Pill Segments + 2px Filling Track -->
-      <div class="timeline-wrap">
-        <div class="timeline-segments">
-          <div class="timeline-pill focus">Focus · 25 min</div>
-          <div class="timeline-pill rest">Rest · 5</div>
-        </div>
-        <div class="timeline-track">
-          <div class="timeline-fill">
-            <span class="timeline-dot"></span>
-          </div>
-        </div>
-      </div>
-
-      <!-- 4-Step Flow Cycle with Timestamps -->
-      <div class="flow-cycle-grid">
-        <!-- Step 1: Deep Sprint -->
-        <div class="flow-card" id="flow-card-1" onclick="replayCardSVG(1)">
-          <div class="flow-icon-box">
-            <svg id="svg-flow-1" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
-              <circle cx="12" cy="12" r="9" />
-              <line x1="12" y1="3" x2="12" y2="7" />
-              <line x1="12" y1="17" x2="12" y2="21" />
-              <line x1="3" y1="12" x2="7" y2="12" />
-              <line x1="17" y1="12" x2="21" y2="12" />
-              <circle cx="12" cy="12" r="3" />
-            </svg>
-          </div>
-          <div class="flow-meta-row">
-            <span class="flow-num">01</span>
-            <span class="flow-time-badge">0:00</span>
-          </div>
-          <div class="flow-card-title">Deep Sprint</div>
-          <p class="flow-card-desc">Immerse into uninterrupted focus. Revive runs quietly in the system tray without disturbing your workspace.</p>
-        </div>
-
-        <!-- Step 2: Peaceful Pause -->
-        <div class="flow-card" id="flow-card-2" onclick="replayCardSVG(2)">
-          <div class="flow-icon-box">
-            <svg id="svg-flow-2" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
-              <rect x="3" y="3" width="18" height="18" rx="3" />
-              <circle cx="8.5" cy="8.5" r="1.5" />
-              <path d="M21 15l-5-5L5 21" />
-            </svg>
-          </div>
-          <div class="flow-meta-row">
-            <span class="flow-num">02</span>
-            <span class="flow-time-badge">25:00</span>
-          </div>
-          <div class="flow-card-title">Peaceful Pause</div>
-          <p class="flow-card-desc">Your screens gently dim into a calm horizon, prompting you to release muscular and mental tension.</p>
-        </div>
-
-        <!-- Step 3: Active Rest -->
-        <div class="flow-card" id="flow-card-3" onclick="replayCardSVG(3)">
-          <div class="flow-icon-box">
-            <svg id="svg-flow-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
-              <path d="M12 4v16" />
-              <path d="M12 9c-3-3-7-1-7 4 0 4 3 6 7 7" />
-              <path d="M12 9c3-3 7-1 7 4 0 4-3 6-7 7" />
-            </svg>
-          </div>
-          <div class="flow-meta-row">
-            <span class="flow-num">03</span>
-            <span class="flow-time-badge">25:00 – 30:00</span>
-          </div>
-          <div class="flow-card-title">Active Rest</div>
-          <p class="flow-card-desc">Engage in restorative diaphragmatic breathwork, neck mobility, or sensory silence to reset your nervous system.</p>
-        </div>
-
-        <!-- Step 4: Refreshed Return -->
-        <div class="flow-card" id="flow-card-4" onclick="replayCardSVG(4)">
-          <div class="flow-icon-box">
-            <svg id="svg-flow-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
-              <path d="M21.5 2v6h-6" />
-              <path d="M21.34 15.57a10 10 0 1 1-.57-8.38l6.73-5.19" />
-            </svg>
-          </div>
-          <div class="flow-meta-row">
-            <span class="flow-num">04</span>
-            <span class="flow-time-badge">30:00</span>
-          </div>
-          <div class="flow-card-title">Refreshed Return</div>
-          <p class="flow-card-desc">Your desktop smoothly restores. You resume work with clear vision, relaxed shoulders, and renewed stamina.</p>
-        </div>
-      </div>
-    </div>
-  </section>
-
-  <!-- ========================================================================
-       SECTION 4 (NEW): WHAT REST LOOKS LIKE (id="rest")
-       ======================================================================== -->
-  <section class="rest-section" id="rest">
-    <div class="container text-center">
-      <span class="sec-tag">What rest looks like</span>
-      <h2 class="sec-title split-text-anim">
-        A few ways to <span class="shimmer-text">actually switch off.</span>
-      </h2>
-      <p class="sec-desc">
-        Choose a default, or pick a different one for each rest. Build your own breathing pattern if the presets do not suit you.
-      </p>
-
-      <!-- 4 Rest Modality Cards -->
-      <div class="rest-cards-grid text-left">
-        <!-- Card 1: Breathing -->
-        <div class="rest-card">
+      <div class="ways-grid" style="text-align: left;">
+        <!-- Card 1: Breathing (2 concentric circles) -->
+        <div class="glass-card way-card">
+          <div class="card-spotlight"></div>
           <div>
-            <div class="rest-icon-box">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
-                <path d="M12 4v16" />
-                <path d="M12 9c-3-3-7-1-7 4 0 4 3 6 7 7" />
-                <path d="M12 9c3-3 7-1 7 4 0 4-3 6-7 7" />
+            <div class="way-icon-tile">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+                <circle cx="12" cy="12" r="9" />
+                <circle cx="12" cy="12" r="4.5" />
               </svg>
             </div>
-            <h3 class="rest-card-title">Breathing</h3>
-            <p class="rest-card-desc">Box, 4-7-8 or coherence. Or set your own phases and seconds.</p>
+            <h3 class="way-title">Breathing</h3>
+            <p class="way-desc">Box, 4-7-8 or coherence, or build a pattern with your own phases and seconds.</p>
           </div>
-          <span class="rest-card-tag">Ends on the timer</span>
+          <span class="way-tag">Ends on the timer</span>
         </div>
 
-        <!-- Card 2: Stretch -->
-        <div class="rest-card">
+        <!-- Card 2: Stretch (Stick figure) -->
+        <div class="glass-card way-card">
+          <div class="card-spotlight"></div>
           <div>
-            <div class="rest-icon-box">
+            <div class="way-icon-tile">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
                 <circle cx="12" cy="5" r="2" />
                 <path d="M12 7v8" />
@@ -2057,94 +2147,98 @@ const html = `<!DOCTYPE html>
                 <path d="M9 19l3-4 3 4" />
               </svg>
             </div>
-            <h3 class="rest-card-title">Stretch</h3>
-            <p class="rest-card-desc">Neck, shoulders and spine, one step at a time with a countdown.</p>
+            <h3 class="way-title">Stretch</h3>
+            <p class="way-desc">Neck, shoulders and spine, one step at a time with a countdown.</p>
           </div>
-          <span class="rest-card-tag">Ends on the timer</span>
+          <span class="way-tag">Ends on the timer</span>
         </div>
 
-        <!-- Card 3: A video you pick -->
-        <div class="rest-card">
+        <!-- Card 3: A video you pick (Play button in rounded rect) -->
+        <div class="glass-card way-card">
+          <div class="card-spotlight"></div>
           <div>
-            <div class="rest-icon-box">
+            <div class="way-icon-tile">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
-                <rect x="2" y="4" width="20" height="16" rx="3" />
+                <rect x="3" y="4" width="18" height="16" rx="4" />
                 <polygon points="10,8 16,12 10,16" fill="currentColor" />
               </svg>
             </div>
-            <h3 class="rest-card-title">A video you pick</h3>
-            <p class="rest-card-desc">Paste a link to a dance, a workout, or something that makes you laugh.</p>
+            <h3 class="way-title">A video you pick</h3>
+            <p class="way-desc">Paste a link to a dance, a workout, or something that makes you laugh.</p>
           </div>
-          <span class="rest-card-tag">You end it</span>
+          <span class="way-tag">You end it</span>
         </div>
 
-        <!-- Card 4: Music -->
-        <div class="rest-card">
+        <!-- Card 4: Sound (Vertical bars) -->
+        <div class="glass-card way-card">
+          <div class="card-spotlight"></div>
           <div>
-            <div class="rest-icon-box">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
-                <path d="M9 18V5l12-2v13" />
-                <circle cx="6" cy="18" r="3" />
-                <circle cx="18" cy="16" r="3" />
+            <div class="way-icon-tile">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round">
+                <line x1="4" y1="9" x2="4" y2="15" />
+                <line x1="8" y1="5" x2="8" y2="19" />
+                <line x1="12" y1="7" x2="12" y2="17" />
+                <line x1="16" y1="4" x2="16" y2="20" />
+                <line x1="20" y1="10" x2="20" y2="14" />
               </svg>
             </div>
-            <h3 class="rest-card-title">Music</h3>
-            <p class="rest-card-desc">Spotify, or a built-in ambient sound like rain.</p>
+            <h3 class="way-title">Sound</h3>
+            <p class="way-desc">Your own audio files, or built-in ambient sounds like rain and white noise.</p>
           </div>
-          <span class="rest-card-tag">You end it</span>
+          <span class="way-tag">You end it</span>
         </div>
       </div>
 
-      <!-- Dashed-Border Small Toasts Strip -->
-      <div class="rest-toasts-strip">
-        <div class="rest-toast-item">
-          <span>Eye break every 20 min</span>
-        </div>
-        <div class="rest-toast-item">
-          <span>Drink water every 45 min</span>
-        </div>
-        <div class="rest-toast-note">
-          Small toasts. Never full screen.
+      <!-- Eye-break and Drink-water nudges strip -->
+      <div class="nudges-strip">
+        <span class="nudges-dot"></span>
+        <span>Eye-break and drink-water nudges run on their own timers as small toasts. Never full screen.</span>
+      </div>
+    </div>
+  </section>
+
+  <!-- ========================================================================
+       6) CLOSE CTA PANEL (36px radius, horizon glow, generous padding)
+       ======================================================================== -->
+  <section class="sec-close reveal-section" id="close">
+    <div class="container">
+      <div class="close-cta-panel">
+        <div class="horizon-glow"></div>
+
+        <div style="position:relative; z-index:5;">
+          <div class="pill-badge" style="margin-bottom: 20px;">
+            <span class="glowing-dot"></span>
+            <span>Revive · Windows & macOS</span>
+          </div>
+
+          <h2 class="close-title">
+            Sustainable flow is built one pause at a time.
+          </h2>
+
+          <div class="hero-cta-row">
+            <button type="button" class="pill-btn primary" onclick="openDownloadModal('win')">
+              <svg viewBox="0 0 24 24" fill="currentColor">
+                <path d="M0 3.449L9.75 2.1v9.451H0m10.949-9.602L24 0v11.551H10.949M0 12.6h9.75v9.451L0 20.699M10.949 12.6H24V24l-13.051-1.802"/>
+              </svg>
+              Download for Windows
+            </button>
+
+            <button type="button" class="pill-btn outline" onclick="openDownloadModal('mac')">
+              <svg viewBox="0 0 24 24" fill="currentColor">
+                <path d="M18.71 19.5c-.83 1.24-1.71 2.45-3.05 2.47-1.34.03-1.77-.79-3.29-.79-1.53 0-2 .77-3.27.82-1.31.05-2.3-1.32-3.14-2.53C4.25 17 2.94 12.45 4.7 9.39c.87-1.52 2.43-2.48 4.12-2.51 1.28-.02 2.5.87 3.29.87.78 0 2.26-1.07 3.81-.91.65.03 2.47.26 3.64 1.98-.09.06-2.17 1.28-2.15 3.81.03 3.02 2.65 4.03 2.68 4.04-.03.07-.42 1.44-1.38 2.83M15.97 6.4c.59-.72.99-1.72.88-2.73-.85.03-1.89.57-2.5 1.28-.54.63-.99 1.65-.87 2.64.95.07 1.91-.47 2.49-1.19z"/>
+              </svg>
+              Download for macOS
+            </button>
+          </div>
         </div>
       </div>
     </div>
   </section>
 
   <!-- ========================================================================
-       SECTION 5 (NEW): CLOSING CTA DIRECTLY ABOVE FOOTER
+       7) EXISTING FOOTER (EXACT AND LAST ELEMENT — "Recovery for Windows & macOS")
        ======================================================================== -->
-  <section class="closing-cta-section" id="closing-cta">
-    <div class="container closing-cta-content text-center">
-      <h2 class="sec-title split-text-anim" style="margin-bottom:28px;">
-        Rest is part of the work. <span class="shimmer-text">Revive makes sure it happens.</span>
-      </h2>
-
-      <div class="download-row">
-        <button type="button" class="dl-btn primary" onclick="openDownloadModal('win')">
-          <svg viewBox="0 0 24 24" fill="currentColor">
-            <path d="M0 3.449L9.75 2.1v9.451H0m10.949-9.602L24 0v11.551H10.949M0 12.6h9.75v9.451L0 20.699M10.949 12.6H24V24l-13.051-1.802"/>
-          </svg>
-          Download for Windows
-        </button>
-
-        <button type="button" class="dl-btn secondary" onclick="openDownloadModal('mac')">
-          <svg viewBox="0 0 24 24" fill="currentColor">
-            <path d="M18.71 19.5c-.83 1.24-1.71 2.45-3.05 2.47-1.34.03-1.77-.79-3.29-.79-1.53 0-2 .77-3.27.82-1.31.05-2.3-1.32-3.14-2.53C4.25 17 2.94 12.45 4.7 9.39c.87-1.52 2.43-2.48 4.12-2.51 1.28-.02 2.5.87 3.29.87.78 0 2.26-1.07 3.81-.91.65.03 2.47.26 3.64 1.98-.09.06-2.17 1.28-2.15 3.81.03 3.02 2.65 4.03 2.68 4.04-.03.07-.42 1.44-1.38 2.83M15.97 6.4c.59-.72.99-1.72.88-2.73-.85.03-1.89.57-2.5 1.28-.54.63-.99 1.65-.87 2.64.95.07 1.91-.47 2.49-1.19z"/>
-          </svg>
-          Download for macOS
-        </button>
-      </div>
-
-      <div style="font-size:11px;color:var(--faint);letter-spacing:0.08em;margin-top:14px;">
-        Windows & macOS
-      </div>
-    </div>
-  </section>
-
-  <!-- ========================================================================
-       SECTION 6: COMPACT SPLASH SCREEN FOOTER (KEEP EXACT & UNTOUCHED)
-       ======================================================================== -->
-  <footer class="splash-footer-wrap" id="splash-footer" title="Click anywhere or press Space / R to replay neon boot animation">
+  <footer class="splash-footer-wrap" id="splash-footer">
     <!-- Corner Ambient Videos -->
     <div class="jf tr">
       <video muted loop playsinline autoplay preload="auto" src="assets/corner.mp4" onerror="if(!this.dataset.fb){this.dataset.fb=1;this.src='src/renderer/splash/assets/corner.mp4'}else if(this.dataset.fb==1){this.dataset.fb=2;this.src='https://d8j0ntlcm91z4.cloudfront.net/user_38xzZboKViGWJOttwIXH07lWA1P/hf_20260813_115057_94c3699b-0fd1-4124-bcf3-3626bb8c1f77.mp4'}else{this.remove()}"></video>
@@ -2157,20 +2251,16 @@ const html = `<!DOCTYPE html>
     <div class="center" id="splash-center">
       ${svgMark}
     </div>
-
-    <div class="splash-replay-hint">
-      [ Click anywhere to replay neon write-in · Press 'R' or Space ]
-    </div>
   </footer>
 
   <!-- Subfooter Bar -->
   <div class="site-subfooter">
     <div class="container site-subfooter-inner">
-      <span style="font-size:11px;color:var(--faint);">© 2026 Revive. Offline-First Recovery. Available for Windows & macOS.</span>
+      <span style="font-size:11px;color:var(--faint);">© 2026 Revive. Recovery for Windows & macOS. Available for Windows & macOS.</span>
       <div style="display:flex;align-items:center;gap:14px;">
         <a href="#hero" class="nav-link">Top ↑</a>
-        <button type="button" class="nav-btn" onclick="openDownloadModal('win')">Get for Windows</button>
-        <button type="button" class="nav-btn" onclick="openDownloadModal('mac')">Get for Mac</button>
+        <button type="button" class="nav-download-pill" style="font-size:10px;padding:6px 14px;" onclick="openDownloadModal('win')">Get for Windows</button>
+        <button type="button" class="nav-download-pill" style="font-size:10px;padding:6px 14px;" onclick="openDownloadModal('mac')">Get for Mac</button>
       </div>
     </div>
   </div>
@@ -2182,8 +2272,13 @@ const html = `<!DOCTYPE html>
     <div class="dl-modal" onclick="event.stopPropagation()">
       <button type="button" class="modal-close" onclick="closeDownloadModal()">✕</button>
 
-      <span class="caps" style="font-size:10px;color:var(--accent);">Download Revive v0.1.0</span>
-      <h3 style="font-size:18px;font-weight:500;color:#fff;margin:6px 0 12px;">Choose Your Platform</h3>
+      <div class="modal-brand-header">
+        <span class="glowing-dot"></span>
+        <span class="brand-wordmark">Revive</span>
+      </div>
+
+      <span class="sec-label" style="font-size:10px;color:var(--accent);">Download Revive v0.1.0</span>
+      <h3 style="font-size:18px;font-weight:500;color:#fff;margin:6px 0 14px;">Choose Your Platform</h3>
 
       <div class="modal-os-tabs">
         <button type="button" class="modal-tab-btn active" id="modal-tab-win" onclick="switchModalTab('win')">
@@ -2204,7 +2299,7 @@ const html = `<!DOCTYPE html>
             <span style="font-size:11px;color:var(--muted);">~78 MB</span>
           </div>
           <p style="font-size:11px;color:var(--muted);">Windows 10 & 11 (64-bit installer)</p>
-          <button type="button" class="dl-btn primary" style="padding:8px 18px;font-size:11px;margin-top:10px;" onclick="triggerFileDownload('win')">
+          <button type="button" class="pill-btn primary" style="height:36px;padding:0 18px;font-size:11px;margin-top:10px;" onclick="triggerFileDownload('win')">
             Download .exe
           </button>
         </div>
@@ -2231,7 +2326,7 @@ const html = `<!DOCTYPE html>
             <span style="font-size:11px;color:var(--muted);">~82 MB</span>
           </div>
           <p style="font-size:11px;color:var(--muted);">Universal build (Apple Silicon M1/M2/M3/M4 & Intel)</p>
-          <button type="button" class="dl-btn primary" style="padding:8px 18px;font-size:11px;margin-top:10px;" onclick="triggerFileDownload('mac')">
+          <button type="button" class="pill-btn primary" style="height:36px;padding:0 18px;font-size:11px;margin-top:10px;" onclick="triggerFileDownload('mac')">
             Download .dmg
           </button>
         </div>
@@ -2254,236 +2349,236 @@ const html = `<!DOCTYPE html>
 
   <!-- Toast Notification -->
   <div class="toast-notice" id="toast-notice">
-    <span class="brand-indicator"></span>
+    <span class="glowing-dot"></span>
     <div>
-      <b style="font-size:12px;color:#fff;display:block;" id="toast-filename">Revive-Setup-0.1.0.exe</b>
+      <b style="font-size:12px;color:#FFFFFF;display:block;" id="toast-filename">Revive-Setup-0.1.0.exe</b>
       <span style="font-size:11px;color:var(--muted);">Download started · Check your downloads folder</span>
     </div>
   </div>
 
   <!-- ========================================================================
-       SCRIPTS: MOTION, TIMELINES, INTERACTIVE PREVIEWS & PARTICLES
+       SCRIPTS
        ======================================================================== -->
   <script>
     const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
-    if (!prefersReducedMotion && typeof gsap !== 'undefined') {
-      gsap.registerPlugin(ScrollTrigger);
-
-      function splitAndAnimateWords(el, options = {}) {
-        if (!el) return;
-        const originalText = el.innerText;
-        const words = originalText.split(/\\s+/);
-        el.innerHTML = words.map(w => '<span class="word-wrap"><span class="word-inner">' + w + '&nbsp;</span></span>').join('');
-
-        const inners = el.querySelectorAll('.word-inner');
-        if (options.scrollTrigger) {
-          gsap.from(inners, {
-            y: "120%",
-            opacity: 0,
-            rotateX: -40,
-            stagger: options.stagger || 0.04,
-            duration: options.duration || 0.85,
-            ease: "power3.out",
-            scrollTrigger: options.scrollTrigger
-          });
-        }
-      }
-
-      window.addEventListener("DOMContentLoaded", function() {
-        document.querySelectorAll(".split-text-anim").forEach(title => {
-          splitAndAnimateWords(title, {
-            scrollTrigger: {
-              trigger: title,
-              start: "top 85%",
-              toggleActions: "play none none none"
-            },
-            stagger: 0.035,
-            duration: 0.75
-          });
-        });
-
-        // 4 SVGs in Science of Flow State
-        [1, 2, 3, 4].forEach(i => {
-          const card = document.getElementById("flow-card-" + i);
-          const svg = document.getElementById("svg-flow-" + i);
-          if (card && svg) {
-            ScrollTrigger.create({
-              trigger: card,
-              start: "top 80%",
-              onEnter: () => animateSVGDraw(svg)
-            });
-          }
-        });
-
-        // Splash Signature in Footer
-        const splashFooter = document.getElementById("splash-footer");
-        if (splashFooter) {
-          ScrollTrigger.create({
-            trigger: splashFooter,
-            start: "top 78%",
-            onEnter: () => replaySplash()
-          });
-          splashFooter.addEventListener("click", replaySplash);
-        }
-      });
-    }
-
-    function prepSVG(svg) {
-      if (!svg) return [];
-      const paths = svg.querySelectorAll("path, circle, line, rect");
-      paths.forEach(p => {
-        let len = 60;
-        try {
-          if (p.getTotalLength) len = p.getTotalLength();
-        } catch(e) {}
-        p.style.strokeDasharray = len;
-        p.style.strokeDashoffset = len;
-        p.dataset.len = len;
-      });
-      return paths;
-    }
-
-    function animateSVGDraw(svg) {
-      if (!svg) return;
-      const paths = svg.querySelectorAll("path, circle, line, rect");
-      paths.forEach((p, idx) => {
-        const len = p.dataset.len || 60;
-        if (typeof gsap !== 'undefined') {
-          gsap.fromTo(p, 
-            { strokeDashoffset: len, opacity: 0.2 },
-            { strokeDashoffset: 0, opacity: 1, duration: 1.1, ease: "power2.out", delay: idx * 0.08 }
-          );
-        } else {
-          p.style.strokeDashoffset = "0";
-          p.style.opacity = "1";
-        }
-      });
-    }
-
-    function replayCardSVG(num) {
-      const svg = document.getElementById("svg-flow-" + num);
-      if (svg) animateSVGDraw(svg);
-    }
-
-    function replaySplash(e) {
-      if (e) e.stopPropagation();
-      const svgEl = document.getElementById("mark");
-      if (!svgEl) return;
-      const clone = svgEl.cloneNode(true);
-      svgEl.parentNode.replaceChild(clone, svgEl);
-    }
+    // Enable progressive enhancement class only when JS is running
+    document.documentElement.classList.add('js-ready');
 
     // =========================================================================
-    // AMBIENCE: ~34 FAINT STARS & 7 DRIFTING LIGHT MOTES
+    // 1. SECTION REVEAL OBSERVER
+    // =========================================================================
+    const revealObserver = new IntersectionObserver((entries, obs) => {
+      entries.forEach(entry => {
+        if (entry.isIntersecting) {
+          entry.target.classList.add('revealed');
+          obs.unobserve(entry.target);
+        }
+      });
+    }, {
+      threshold: 0.12,
+      rootMargin: '0px 0px -50px 0px'
+    });
+
+    document.querySelectorAll('.reveal-section').forEach(sec => {
+      revealObserver.observe(sec);
+    });
+
+    // =========================================================================
+    // 2. ACTIVE NAV HIGHLIGHT OBSERVER
+    // =========================================================================
+    const navLinks = document.querySelectorAll('.nav-link');
+    const observedSections = ['premise', 'principles', 'demo', 'ways']
+      .map(id => document.getElementById(id))
+      .filter(Boolean);
+
+    const navObserver = new IntersectionObserver((entries) => {
+      entries.forEach(entry => {
+        if (entry.isIntersecting) {
+          const id = entry.target.id;
+          navLinks.forEach(link => {
+            if (link.getAttribute('href') === '#' + id) {
+              link.classList.add('active');
+            } else {
+              link.classList.remove('active');
+            }
+          });
+        }
+      });
+    }, {
+      rootMargin: '-30% 0px -40% 0px',
+      threshold: 0
+    });
+
+    observedSections.forEach(sec => navObserver.observe(sec));
+
+    // =========================================================================
+    // 3. CARD HOVER SPOTLIGHT TRACKER
+    // =========================================================================
+    document.querySelectorAll('.glass-card').forEach(card => {
+      card.addEventListener('pointermove', (e) => {
+        const rect = card.getBoundingClientRect();
+        const x = e.clientX - rect.left;
+        const y = e.clientY - rect.top;
+        card.style.setProperty('--mx', x + 'px');
+        card.style.setProperty('--my', y + 'px');
+      });
+    });
+
+    // =========================================================================
+    // 4. AMBIENCE: 18 STARS & 4 DRIFTING MOTES
     // =========================================================================
     (function initAmbience() {
       if (prefersReducedMotion) return;
-      const st = document.getElementById("stars");
-      if (st) {
-        for (let i = 0; i < 34; i++) {
-          const s = document.createElement("i");
-          const is3px = i < 4;
-          s.style.cssText = "left:" + (Math.random() * 100).toFixed(1) + "%;top:" + (Math.random() * 100).toFixed(1) + "%;--d:" + (4 + Math.random() * 6).toFixed(1) + "s;--s:-" + (Math.random() * 6).toFixed(1) + "s;--o:" + (0.25 + Math.random() * 0.45).toFixed(2) + ";" + (is3px ? "width:3px;height:3px;" : "");
-          st.appendChild(s);
+      const starsWrap = document.getElementById('stars-wrap');
+      if (starsWrap) {
+        for (let i = 0; i < 18; i++) {
+          const s = document.createElement('i');
+          s.className = 'star';
+          const left = (Math.random() * 100).toFixed(1);
+          const top = (Math.random() * 100).toFixed(1);
+          const dur = (4 + Math.random() * 5).toFixed(1);
+          const delay = (Math.random() * 6).toFixed(1);
+          const op = (0.25 + Math.random() * 0.45).toFixed(2);
+          s.style.cssText = 'left:' + left + '%;top:' + top + '%;--d:' + dur + 's;--s:-' + delay + 's;--o:' + op + ';';
+          starsWrap.appendChild(s);
         }
       }
 
-      const motesEl = document.getElementById("motes");
-      if (motesEl) {
-        for (let m = 0; m < 7; m++) {
-          const mote = document.createElement("div");
-          mote.className = "mote";
-          const dur = (18 + Math.random() * 14).toFixed(1);
-          const delay = (Math.random() * 18).toFixed(1);
-          const left = (8 + Math.random() * 84).toFixed(1);
+      const motesWrap = document.getElementById('motes-wrap');
+      if (motesWrap) {
+        for (let m = 0; m < 4; m++) {
+          const mote = document.createElement('div');
+          mote.className = 'mote';
+          const dur = (20 + Math.random() * 12).toFixed(1);
+          const delay = (Math.random() * 16).toFixed(1);
+          const left = (10 + Math.random() * 80).toFixed(1);
           const drift = (Math.random() * 40 - 20).toFixed(0);
           const op = (0.35 + Math.random() * 0.25).toFixed(2);
-          mote.style.cssText = "left:" + left + "%;--m-dur:" + dur + "s;--m-delay:-" + delay + "s;--m-drift:" + drift + "px;--m-op:" + op + ";";
-          motesEl.appendChild(mote);
+          mote.style.cssText = 'left:' + left + '%;--m-dur:' + dur + 's;--m-delay:-' + delay + 's;--m-drift:' + drift + 'px;--m-op:' + op + ';';
+          motesWrap.appendChild(mote);
         }
       }
     })();
 
-    // Footer keyboard replay
-    document.addEventListener("keydown", function(e) {
-      if (e.key === "r" || e.key === "R" || e.key === " ") {
-        if (document.activeElement && (document.activeElement.tagName === "INPUT" || document.activeElement.tagName === "TEXTAREA")) return;
-        if (window.scrollY > document.body.scrollHeight - 900) {
-          replaySplash();
-        }
-      }
-    });
-
     // =========================================================================
-    // SECTION 2: TABS LOGIC
+    // 5. REVIVE SIGNATURE ANIMATION ON SCROLL
     // =========================================================================
-    function switchTab(tabKey) {
-      const btns = document.querySelectorAll(".preview-pill-btn");
-      btns.forEach(b => b.classList.remove("active"));
-      const btn = document.getElementById("tab-btn-" + tabKey);
-      if (btn) btn.classList.add("active");
+    function playReviveAnimation() {
+      const splashCenter = document.getElementById('splash-center');
+      if (!splashCenter) return;
+      const svgEl = splashCenter.querySelector('#mark');
+      if (!svgEl) return;
 
-      const views = document.querySelectorAll(".tab-view");
-      views.forEach(v => {
-        v.classList.remove("active");
-        v.style.display = "none";
-      });
-      const target = document.getElementById("view-" + tabKey);
-      if (target) {
-        target.classList.add("active");
-        target.style.display = "block";
+      svgEl.classList.remove('anim-paused');
+      const clone = svgEl.cloneNode(true);
+      clone.classList.remove('anim-paused');
+      splashCenter.replaceChild(clone, svgEl);
+    }
+
+    const splashFooter = document.getElementById('splash-footer');
+    if (splashFooter) {
+      let isVisible = false;
+
+      if ('IntersectionObserver' in window) {
+        const observer = new IntersectionObserver((entries) => {
+          entries.forEach(entry => {
+            if (entry.isIntersecting) {
+              if (!isVisible) {
+                isVisible = true;
+                playReviveAnimation();
+              }
+            } else {
+              isVisible = false;
+            }
+          });
+        }, {
+          threshold: 0.2
+        });
+        observer.observe(splashFooter);
+      } else {
+        window.addEventListener('scroll', function() {
+          const rect = splashFooter.getBoundingClientRect();
+          const inView = rect.top < window.innerHeight * 0.85 && rect.bottom > window.innerHeight * 0.15;
+          if (inView) {
+            if (!isVisible) {
+              isVisible = true;
+              playReviveAnimation();
+            }
+          } else {
+            isVisible = false;
+          }
+        }, { passive: true });
       }
     }
 
     // =========================================================================
-    // BREATHING ENGINE (BOX, 4-7-8, COHERENCE)
+    // 6. INTERACTIVE PREVIEW TABS
+    // =========================================================================
+    function switchDemoTab(tabKey) {
+      document.querySelectorAll('.demo-tab-btn').forEach(b => b.classList.remove('active'));
+      const activeBtn = document.getElementById('tab-btn-' + tabKey);
+      if (activeBtn) activeBtn.classList.add('active');
+
+      document.querySelectorAll('.demo-tab-view').forEach(v => {
+        v.classList.remove('active');
+        v.style.display = 'none';
+      });
+      const targetView = document.getElementById('demo-view-' + tabKey);
+      if (targetView) {
+        targetView.classList.add('active');
+        targetView.style.display = 'block';
+      }
+    }
+
+    // =========================================================================
+    // 7. BREATHING ENGINE (230px Ring, Arc, Scale & Cue Logic)
     // =========================================================================
     const PATTERNS = {
       box: {
-        name: "Box 4·4·4·4",
+        name: 'Box 4·4·4·4',
         phases: [
-          { name: "INHALE", sec: 4, scale: 1.25, cue: "Expand diaphragm slowly · Rest your eyes" },
-          { name: "HOLD", sec: 4, scale: 1.25, cue: "Stay soft · Let your shoulders drop" },
-          { name: "EXHALE", sec: 4, scale: 0.8, cue: "Release slowly · Unclench your jaw" },
-          { name: "HOLD", sec: 4, scale: 0.8, cue: "Stay soft · Let your shoulders drop" }
+          { name: 'INHALE', sec: 4, scale: 1.25, cue: 'Expand diaphragm slowly · Rest your eyes' },
+          { name: 'HOLD', sec: 4, scale: 1.25, cue: 'Stay soft · Let your shoulders drop' },
+          { name: 'EXHALE', sec: 4, scale: 0.8, cue: 'Release slowly · Unclench your jaw' },
+          { name: 'HOLD', sec: 4, scale: 0.8, cue: 'Stay soft · Let your shoulders drop' }
         ]
       },
-      "478": {
-        name: "4-7-8",
+      '478': {
+        name: '4-7-8',
         phases: [
-          { name: "INHALE", sec: 4, scale: 1.25, cue: "Expand diaphragm slowly · Rest your eyes" },
-          { name: "HOLD", sec: 7, scale: 1.25, cue: "Stay soft · Let your shoulders drop" },
-          { name: "EXHALE", sec: 8, scale: 0.8, cue: "Release slowly · Unclench your jaw" }
+          { name: 'INHALE', sec: 4, scale: 1.25, cue: 'Expand diaphragm slowly · Rest your eyes' },
+          { name: 'HOLD', sec: 7, scale: 1.25, cue: 'Stay soft · Let your shoulders drop' },
+          { name: 'EXHALE', sec: 8, scale: 0.8, cue: 'Release slowly · Unclench your jaw' }
         ]
       },
       coherence: {
-        name: "Coherence 5·5",
+        name: 'Coherence 5·5',
         phases: [
-          { name: "INHALE", sec: 5, scale: 1.25, cue: "Expand diaphragm slowly · Rest your eyes" },
-          { name: "EXHALE", sec: 5, scale: 0.8, cue: "Release slowly · Unclench your jaw" }
+          { name: 'INHALE', sec: 5, scale: 1.25, cue: 'Expand diaphragm slowly · Rest your eyes' },
+          { name: 'EXHALE', sec: 5, scale: 0.8, cue: 'Release slowly · Unclench your jaw' }
         ]
       }
     };
 
-    let curPatternKey = "box";
+    let curPatternKey = 'box';
     let curPhaseIdx = 0;
     let phaseSecRem = 4;
-    const CIRCLE_CIRCUMFERENCE = 515;
+    const CIRCLE_CIRCUMFERENCE = 679; // 2 * PI * 108
 
     function renderPhaseDots() {
-      const container = document.getElementById("breath-phase-dots");
+      const container = document.getElementById('breath-phase-dots');
       if (!container) return;
       const phases = PATTERNS[curPatternKey].phases;
       container.innerHTML = phases.map((_, i) => '<span class="phase-dot' + (i === curPhaseIdx ? ' active' : '') + '"></span>').join('');
     }
 
-    function selectPattern(key) {
+    function selectBreathPattern(key) {
       if (!PATTERNS[key]) return;
       curPatternKey = key;
-      document.querySelectorAll(".pattern-chip").forEach(c => c.classList.remove("active"));
-      const chip = document.getElementById("chip-" + key);
-      if (chip) chip.classList.add("active");
+      document.querySelectorAll('.pattern-chip').forEach(c => c.classList.remove('active'));
+      const chip = document.getElementById('chip-' + key);
+      if (chip) chip.classList.add('active');
 
       curPhaseIdx = 0;
       phaseSecRem = PATTERNS[key].phases[0].sec;
@@ -2493,15 +2588,15 @@ const html = `<!DOCTYPE html>
 
     function applyBreathPhase(animate = true) {
       const phase = PATTERNS[curPatternKey].phases[curPhaseIdx];
-      const orb = document.getElementById("live-orb");
+      const orb = document.getElementById('breath-orb');
       if (orb) {
-        orb.style.transform = "scale(" + phase.scale + ")";
+        orb.style.transform = 'scale(' + phase.scale + ')';
       }
-      const phWord = document.getElementById("live-phase");
+      const phWord = document.getElementById('breath-phase');
       if (phWord) phWord.textContent = phase.name;
-      const cue = document.getElementById("live-cue");
+      const cue = document.getElementById('breath-cue');
       if (cue) cue.textContent = phase.cue;
-      const sec = document.getElementById("live-sec");
+      const sec = document.getElementById('breath-sec');
       if (sec) sec.textContent = phaseSecRem;
 
       updateProgressArc();
@@ -2510,7 +2605,7 @@ const html = `<!DOCTYPE html>
 
     function updateProgressArc() {
       const phase = PATTERNS[curPatternKey].phases[curPhaseIdx];
-      const arc = document.getElementById("breath-arc");
+      const arc = document.getElementById('breath-arc');
       if (!arc) return;
       const total = phase.sec;
       const elapsed = total - phaseSecRem;
@@ -2532,7 +2627,7 @@ const html = `<!DOCTYPE html>
         if (phaseSecRem < 0) {
           advanceBreathPhase();
         } else {
-          const sec = document.getElementById("live-sec");
+          const sec = document.getElementById('breath-sec');
           if (sec) sec.textContent = phaseSecRem;
           updateProgressArc();
         }
@@ -2541,104 +2636,131 @@ const html = `<!DOCTYPE html>
     renderPhaseDots();
 
     // =========================================================================
-    // FOCUS SETUP STEPPER & PROPORTIONAL 4-CYCLE BAR
+    // 8. FOCUS SETUP STEPPERS & PROPORTIONAL BAR
     // =========================================================================
     let fVal = 25;
     let rVal = 5;
+    let roundsVal = 4;
 
-    function renderCycleBar() {
-      const container = document.getElementById("cycle-bar-segments");
-      if (!container) return;
-      let html = '';
-      for (let i = 0; i < 4; i++) {
-        html += '<div class="cycle-seg-focus" style="flex:' + fVal + ';"></div>';
-        html += '<div class="cycle-seg-rest" style="flex:' + rVal + ';"></div>';
+    function stepFocus(delta) {
+      fVal = Math.max(5, Math.min(180, fVal + delta));
+      const el = document.getElementById('val-focus');
+      if (el) el.textContent = fVal;
+      updateFocusPlan();
+    }
+
+    function stepRest(delta) {
+      rVal = Math.max(1, Math.min(60, rVal + delta));
+      const el = document.getElementById('val-rest');
+      if (el) el.textContent = rVal;
+      updateFocusPlan();
+    }
+
+    function stepRounds(delta) {
+      roundsVal = Math.max(1, Math.min(8, roundsVal + delta));
+      const el = document.getElementById('val-rounds');
+      if (el) el.textContent = roundsVal;
+      updateFocusPlan();
+    }
+
+    function updateFocusPlan() {
+      const bar = document.getElementById('cycle-bar-segments');
+      if (bar) {
+        let segs = '';
+        for (let i = 0; i < roundsVal; i++) {
+          segs += '<div class="cycle-seg-focus" style="flex:' + fVal + ';"></div>';
+          segs += '<div class="cycle-seg-rest" style="flex:' + rVal + ';"></div>';
+        }
+        bar.innerHTML = segs;
       }
-      container.innerHTML = html;
 
-      const totalMins = 4 * (fVal + rVal);
-      let timeText = '';
-      if (totalMins % 60 === 0) {
-        const hrs = totalMins / 60;
-        timeText = '~' + hrs + (hrs === 1 ? ' hour' : ' hours');
+      const totalMins = roundsVal * (fVal + rVal);
+      const hrs = Math.floor(totalMins / 60);
+      const mins = totalMins % 60;
+      let timeStr = '';
+      if (mins === 0) {
+        timeStr = hrs + (hrs === 1 ? ' hour' : ' hours');
       } else {
-        const hrs = Math.floor(totalMins / 60);
-        const mins = totalMins % 60;
-        timeText = '~' + (hrs ? hrs + 'h ' : '') + mins + 'm';
+        timeStr = (hrs > 0 ? hrs + 'h ' : '') + mins + 'm';
       }
-      const summary = document.getElementById("val-summary");
+
+      const summary = document.getElementById('val-summary');
       if (summary) {
-        summary.textContent = "Plan: 4 focus cycles · 4 active rest breaks (" + timeText + " total)";
+        summary.textContent = "You'll have " + roundsVal + " rests · about " + timeStr;
       }
     }
-
-    function stepVal(type, delta) {
-      if (type === "focus") {
-        fVal = Math.max(5, Math.min(180, fVal + delta));
-        const el = document.getElementById("val-focus");
-        if (el) el.textContent = fVal;
-      } else {
-        rVal = Math.max(1, Math.min(60, rVal + delta));
-        const el = document.getElementById("val-rest");
-        if (el) el.textContent = rVal;
-      }
-      renderCycleBar();
-    }
-    renderCycleBar();
+    updateFocusPlan();
 
     // =========================================================================
-    // CUSTOM ACTIVITIES TAB
+    // 9. CUSTOM ACTIVITIES
     // =========================================================================
-    let chosenChipType = "Breath";
+    let chosenActType = 'Breathing';
+
     function selectActChip(btn, typeName) {
-      document.querySelectorAll(".custom-type-chip").forEach(c => c.classList.remove("active"));
-      btn.classList.add("active");
-      chosenChipType = typeName;
+      document.querySelectorAll('.custom-type-chip').forEach(c => c.classList.remove('active'));
+      btn.classList.add('active');
+      chosenActType = typeName;
+
+      const minsInput = document.getElementById('custom-act-mins');
+      const enditBadge = document.getElementById('custom-badge-endit');
+
+      if (typeName === 'Video' || typeName === 'Sound') {
+        if (minsInput) minsInput.style.display = 'none';
+        if (enditBadge) enditBadge.style.display = 'inline-block';
+      } else {
+        if (minsInput) minsInput.style.display = 'inline-block';
+        if (enditBadge) enditBadge.style.display = 'none';
+      }
     }
 
     function updateRoutineTotal() {
-      const list = document.getElementById("custom-list");
-      const rows = list.querySelectorAll(".custom-item-row");
-      const totalLine = document.getElementById("routine-total-line");
+      const list = document.getElementById('custom-list');
+      const rows = list.querySelectorAll('.custom-row');
+      const totalLine = document.getElementById('routine-total-line');
       if (!totalLine) return;
 
       if (rows.length === 0) {
-        list.innerHTML = '<div class="custom-item-empty">Add your first activity above.</div>';
-        totalLine.textContent = "Routine total: 0 mins · 0 activities";
+        list.innerHTML = '<div class="custom-empty">Add your first activity above.</div>';
+        totalLine.textContent = 'Timed: 0 mins · 0 activities';
         return;
       }
 
-      let totalMins = 0;
+      let totalTimedMins = 0;
       rows.forEach(r => {
-        totalMins += parseInt(r.getAttribute("data-mins") || "0", 10);
+        const m = parseInt(r.getAttribute('data-mins') || '0', 10);
+        totalTimedMins += m;
       });
-      totalLine.textContent = "Routine total: " + totalMins + " mins · " + rows.length + " activities";
+      totalLine.textContent = 'Timed: ' + totalTimedMins + ' mins · ' + rows.length + ' activities';
     }
 
     function addCustomActivity() {
-      const nameIn = document.getElementById("custom-act-name");
-      const minsIn = document.getElementById("custom-act-mins");
-      const name = nameIn.value.trim() || (chosenChipType + " Routine");
-      const mins = parseInt(minsIn.value, 10) || 5;
+      const nameIn = document.getElementById('custom-act-name');
+      const minsIn = document.getElementById('custom-act-mins');
+      const name = nameIn.value.trim() || (chosenActType + ' Routine');
 
-      const list = document.getElementById("custom-list");
-      const emptyNotice = list.querySelector(".custom-item-empty");
+      const isUntimed = (chosenActType === 'Video' || chosenActType === 'Sound');
+      const mins = isUntimed ? 0 : (parseInt(minsIn.value, 10) || 5);
+      const timeLabel = isUntimed ? 'You end it' : (mins + ' mins');
+
+      const list = document.getElementById('custom-list');
+      const emptyNotice = list.querySelector('.custom-empty');
       if (emptyNotice) emptyNotice.remove();
 
-      const row = document.createElement("div");
-      row.className = "custom-item-row";
-      row.setAttribute("data-mins", mins);
-      row.innerHTML = '<span>' + name + ' (' + chosenChipType + ') · ' + mins + ' mins</span><button type="button" class="custom-del-btn" onclick="removeCustomItem(this)" title="Remove">✕</button>';
-      row.style.opacity = "0";
+      const row = document.createElement('div');
+      row.className = 'custom-row';
+      row.setAttribute('data-type', chosenActType);
+      row.setAttribute('data-mins', mins);
+      row.innerHTML = '<span>' + name + ' (' + chosenActType + ') · ' + timeLabel + '</span><button type="button" class="custom-del-btn" onclick="removeCustomItem(this)" title="Remove">✕</button>';
+      row.style.opacity = '0';
       list.prepend(row);
 
-      setTimeout(() => { row.style.opacity = "1"; }, 10);
-      nameIn.value = "";
+      setTimeout(() => { row.style.opacity = '1'; }, 10);
+      nameIn.value = '';
       updateRoutineTotal();
     }
 
     function removeCustomItem(btn) {
-      const row = btn.closest(".custom-item-row");
+      const row = btn.closest('.custom-row');
       if (row) {
         row.remove();
         updateRoutineTotal();
@@ -2647,43 +2769,43 @@ const html = `<!DOCTYPE html>
     updateRoutineTotal();
 
     // =========================================================================
-    // DOWNLOAD MODAL & TRIGGER
+    // 10. DOWNLOAD MODAL & FILE TRIGGER (Unchanged Modal Behaviour)
     // =========================================================================
     function openDownloadModal(platform) {
-      const modal = document.getElementById("download-modal");
-      if (modal) modal.classList.add("open");
-      switchModalTab(platform || "win");
-      triggerFileDownload(platform || "win");
+      const modal = document.getElementById('download-modal');
+      if (modal) modal.classList.add('open');
+      switchModalTab(platform || 'win');
+      triggerFileDownload(platform || 'win');
     }
 
     function closeDownloadModal(e) {
-      if (e && e.target !== e.currentTarget && !e.target.classList.contains("modal-close")) return;
-      const modal = document.getElementById("download-modal");
-      if (modal) modal.classList.remove("open");
+      if (e && e.target !== e.currentTarget && !e.target.classList.contains('modal-close')) return;
+      const modal = document.getElementById('download-modal');
+      if (modal) modal.classList.remove('open');
     }
 
     function switchModalTab(os) {
-      document.getElementById("modal-tab-win").classList.toggle("active", os === "win");
-      document.getElementById("modal-tab-mac").classList.toggle("active", os === "mac");
-      document.getElementById("modal-content-win").classList.toggle("active", os === "win");
-      document.getElementById("modal-content-mac").classList.toggle("active", os === "mac");
+      document.getElementById('modal-tab-win').classList.toggle('active', os === 'win');
+      document.getElementById('modal-tab-mac').classList.toggle('active', os === 'mac');
+      document.getElementById('modal-content-win').classList.toggle('active', os === 'win');
+      document.getElementById('modal-content-mac').classList.toggle('active', os === 'mac');
     }
 
     function triggerFileDownload(os) {
-      const filename = os === "mac" ? "Revive-0.1.0-mac.dmg" : "Revive-Setup-0.1.0.exe";
-      const toastFn = document.getElementById("toast-filename");
+      const filename = os === 'mac' ? 'Revive-0.1.0-mac.dmg' : 'Revive-Setup-0.1.0.exe';
+      const toastFn = document.getElementById('toast-filename');
       if (toastFn) toastFn.textContent = filename;
 
-      const toast = document.getElementById("toast-notice");
+      const toast = document.getElementById('toast-notice');
       if (toast) {
-        toast.classList.add("show");
-        setTimeout(() => toast.classList.remove("show"), 5000);
+        toast.classList.add('show');
+        setTimeout(() => toast.classList.remove('show'), 5000);
       }
 
-      const content = os === "mac" ? "Revive macOS Universal DMG Build" : "Revive Windows Desktop Installer (.exe)";
-      const blob = new Blob([content], { type: "application/octet-stream" });
+      const content = os === 'mac' ? 'Revive macOS Universal DMG Build' : 'Revive Windows Desktop Installer (.exe)';
+      const blob = new Blob([content], { type: 'application/octet-stream' });
       const url = URL.createObjectURL(blob);
-      const a = document.createElement("a");
+      const a = document.createElement('a');
       a.href = url;
       a.download = filename;
       document.body.appendChild(a);
@@ -2716,4 +2838,4 @@ if (fs.existsSync(srcAssets)) {
   fs.cpSync(srcAssets, destAssets, { recursive: true });
 }
 
-console.log('Successfully compiled landing page to root and dist-site for Vercel deployment!');
+console.log('Successfully compiled Revive landing page to root and dist-site for Vercel deployment!');
