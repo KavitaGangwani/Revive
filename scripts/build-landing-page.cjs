@@ -19,12 +19,12 @@ const html = `<!DOCTYPE html>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
   <title>Revive — Sustainable Flow Starts with Recovery</title>
-  <meta name="description" content="Revive is a desktop app for Windows and macOS for people who do deep work and struggle to stop. When your focus time is up, it takes over your screen with a few minutes of guided recovery." />
+  <meta name="description" content="Revive is a desktop app for sustainable flow. Start a session, and when your focus time ends it opens guided recovery on your screen, then hands you back to your work. Windows and macOS." />
   <meta name="theme-color" content="#000000" />
 
   <!-- OpenGraph -->
   <meta property="og:title" content="Revive — Sustainable Flow Starts with Recovery" />
-  <meta property="og:description" content="Revive protects your cognitive stamina. Guided recovery for Windows and macOS." />
+  <meta property="og:description" content="Revive is a desktop app for sustainable flow. Start a session, and when your focus time ends it opens guided recovery on your screen, then hands you back to your work. Windows and macOS." />
   <meta property="og:type" content="website" />
   <meta property="og:image" content="assets/revive-ui-screenshot.jpg" />
 
@@ -117,7 +117,7 @@ const html = `<!DOCTYPE html>
     .sec-head {
       text-align: center;
       max-width: 820px;
-      margin: 0 auto 48px;
+      margin: 0 auto 32px;
     }
     .sec-label {
       font-size: 10px;
@@ -444,7 +444,7 @@ const html = `<!DOCTYPE html>
       flex-direction: column;
       align-items: center;
       justify-content: center;
-      padding: 120px 0 80px;
+      padding: 100px 0 60px;
       text-align: center;
       overflow: hidden; /* Clips horizon glow from leaking */
     }
@@ -490,61 +490,44 @@ const html = `<!DOCTYPE html>
       flex-wrap: wrap;
       margin-bottom: 16px;
     }
-    .hero-meta {
-      font-size: 11px;
-      color: var(--faint);
-      letter-spacing: 0.08em;
-      margin-bottom: 48px;
-    }
 
-    /* Rhythm Wave Glass Bar */
-    .rhythm-wave-bar {
-      max-width: 980px;
-      margin: 0 auto;
-      border-radius: 24px;
+    /* Hero Reassurance Pill */
+    .hero-reassurance-pill {
+      display: inline-flex;
+      align-items: flex-start;
+      gap: 10px;
+      max-width: 60ch;
+      margin: 8px auto 18px;
+      padding: 10px 18px;
+      border-radius: 20px;
       background: rgba(255, 255, 255, 0.03);
       backdrop-filter: blur(16px);
       -webkit-backdrop-filter: blur(16px);
       border: 1px solid var(--hair);
-      padding: 24px 28px 20px;
-      position: relative;
-      overflow: hidden;
-    }
-    .rhythm-wave-bar::before {
-      content: "";
-      position: absolute;
-      top: 0;
-      left: 15%;
-      right: 15%;
-      height: 1px;
-      background: linear-gradient(90deg, transparent, rgba(175, 221, 255, 0.4), transparent);
-    }
-    .rhythm-svg-wrap {
-      width: 100%;
-      height: 64px;
-    }
-    .rhythm-svg {
-      width: 100%;
-      height: 100%;
-      overflow: visible;
-    }
-    .rhythm-labels {
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      gap: 12px;
-      font-size: 11px;
-      letter-spacing: 0.08em;
       color: var(--muted);
-      margin-top: 14px;
-      flex-wrap: wrap;
+      font-size: 11.5px;
+      line-height: 1.55;
+      letter-spacing: 0.02em;
+      text-align: left;
     }
-    .rhythm-labels .rest-accent {
-      color: var(--accent);
-      font-weight: 500;
+    .hero-reassurance-pill .glowing-dot {
+      margin-top: 5px;
     }
-    .rhythm-labels .label-sep {
+
+    .hero-meta {
+      font-size: 11px;
       color: var(--faint);
+      letter-spacing: 0.08em;
+      margin-bottom: 0;
+    }
+
+    /* Closing CTA faint line */
+    .close-faint-line {
+      font-size: 11px;
+      color: var(--faint);
+      letter-spacing: 0.08em;
+      margin-top: 14px;
+      margin-bottom: 0;
     }
 
     /* ==========================================================================
@@ -585,7 +568,7 @@ const html = `<!DOCTYPE html>
        SECTION 2: WHY REVIVE (id="premise") — BENTO GRID OF 3 GLASS CARDS
        ========================================================================== */
     .sec-premise {
-      padding: 110px 0 90px;
+      padding: 60px 0 50px;
       position: relative;
     }
     .bento-grid {
@@ -670,7 +653,7 @@ const html = `<!DOCTYPE html>
        SECTION 3: WHAT REVIVE STANDS FOR (id="principles") — 2x2 KEYWORD CARDS
        ========================================================================== */
     .sec-principles {
-      padding: 90px 0;
+      padding: 50px 0;
       position: relative;
     }
     .principles-grid {
@@ -727,7 +710,7 @@ const html = `<!DOCTYPE html>
        SECTION 4: REVIVE IN ACTION (id="demo") — 3 INTERACTIVE TABS & PANEL
        ========================================================================== */
     .sec-demo {
-      padding: 90px 0;
+      padding: 50px 0;
       position: relative;
     }
 
@@ -1270,7 +1253,7 @@ const html = `<!DOCTYPE html>
        SECTION 5: WAYS TO RECOVER (id="ways") — 2x2 GRID OF GLASS CARDS
        ========================================================================== */
     .sec-ways {
-      padding: 90px 0;
+      padding: 50px 0;
       position: relative;
     }
     .ways-grid {
@@ -1339,7 +1322,7 @@ const html = `<!DOCTYPE html>
       border-radius: 999px;
       border: 1px solid var(--hair);
       background: rgba(255, 255, 255, 0.02);
-      margin-top: 36px;
+      margin-top: 24px;
       font-size: 12px;
       color: var(--muted);
       flex-wrap: wrap;
@@ -1357,7 +1340,7 @@ const html = `<!DOCTYPE html>
        SECTION 6: CLOSE CTA (Big Glass CTA Panel, 36px Radius)
        ========================================================================== */
     .sec-close {
-      padding: 90px 0 110px;
+      padding: 50px 0 70px;
       position: relative;
     }
     .close-cta-panel {
@@ -1369,7 +1352,7 @@ const html = `<!DOCTYPE html>
       background: rgba(255, 255, 255, 0.03);
       backdrop-filter: blur(16px);
       -webkit-backdrop-filter: blur(16px);
-      padding: 90px 32px;
+      padding: 64px 32px;
       text-align: center;
       overflow: hidden;
       box-shadow: 0 25px 80px rgba(0, 0, 0, 0.7);
@@ -1390,7 +1373,7 @@ const html = `<!DOCTYPE html>
       line-height: 1.15;
       color: #FFFFFF;
       max-width: 18ch;
-      margin: 20px auto 32px;
+      margin: 18px auto 26px;
     }
 
     /* ==========================================================================
@@ -1655,7 +1638,6 @@ const html = `<!DOCTYPE html>
       .ambience-layer { display: none !important; }
       .marquee-track { animation: none !important; }
       .horizon-glow { animation: none !important; opacity: 0.75 !important; }
-      .rhythm-svg circle { display: none !important; }
       html.js-ready .reveal-section {
         opacity: 1 !important;
         transform: none !important;
@@ -1717,7 +1699,7 @@ const html = `<!DOCTYPE html>
       </h1>
 
       <p class="hero-desc">
-        Revive is a desktop app for people who do deep work and struggle to stop. When your focus time is up, it takes over your screen with a few minutes of guided recovery, then hands you back to your work. Do that every day and your focus becomes something you can sustain.
+        Revive is a desktop app for people who do deep work and struggle to stop. You start a session, and when your focus time ends, Revive opens a few minutes of guided recovery on your screen, then hands you back to your work. Do that every day and your focus becomes something you can sustain.
       </p>
 
       <div class="hero-cta-row">
@@ -1736,53 +1718,13 @@ const html = `<!DOCTYPE html>
         </button>
       </div>
 
+      <!-- <div class="hero-reassurance-pill">
+        <span class="glowing-dot"></span>
+        <span>You are in control. Revive never takes over your screen on its own. Installing or opening the app does nothing: the screen takeover happens only in a session you choose to start.</span>
+      </div> -->
+
       <div class="hero-meta">
         Windows 10 / 11 (64-bit) · macOS 12+ (Universal)
-      </div>
-
-      <!-- Glass Bar holding animated Rhythm Wave -->
-      <div class="rhythm-wave-bar">
-        <div class="rhythm-svg-wrap">
-          <svg class="rhythm-svg" viewBox="0 0 800 64" fill="none" preserveAspectRatio="xMidYMid meet">
-            <defs>
-              <filter id="waveGlow" x="-20%" y="-20%" width="140%" height="140%">
-                <feGaussianBlur stdDeviation="3" result="blur" />
-                <feMerge>
-                  <feMergeNode in="blur" />
-                  <feMergeNode in="SourceGraphic" />
-                </feMerge>
-              </filter>
-              <path id="rhythmTrack" d="M 30 24 L 165 24 C 180 24, 180 50, 190 50 C 200 50, 200 24, 215 24 L 350 24 C 365 24, 365 50, 375 50 C 385 50, 385 24, 400 24 L 535 24 C 550 24, 550 50, 560 50 C 570 50, 570 24, 585 24 L 720 24 C 735 24, 735 50, 745 50 C 755 50, 755 24, 770 24" />
-            </defs>
-
-            <!-- Focus lines (Thin grey) -->
-            <path d="M 30 24 L 165 24" stroke="rgba(255,255,255,0.22)" stroke-width="1.5" stroke-linecap="round" />
-            <path d="M 215 24 L 350 24" stroke="rgba(255,255,255,0.22)" stroke-width="1.5" stroke-linecap="round" />
-            <path d="M 400 24 L 535 24" stroke="rgba(255,255,255,0.22)" stroke-width="1.5" stroke-linecap="round" />
-            <path d="M 585 24 L 720 24" stroke="rgba(255,255,255,0.22)" stroke-width="1.5" stroke-linecap="round" />
-
-            <!-- Rest curves (Accent glowing curves) -->
-            <path d="M 165 24 C 180 24, 180 50, 190 50 C 200 50, 200 24, 215 24" stroke="var(--accent)" stroke-width="2.5" stroke-linecap="round" filter="url(#waveGlow)" />
-            <path d="M 350 24 C 365 24, 365 50, 375 50 C 385 50, 385 24, 400 24" stroke="var(--accent)" stroke-width="2.5" stroke-linecap="round" filter="url(#waveGlow)" />
-            <path d="M 535 24 C 550 24, 550 50, 560 50 C 570 50, 570 24, 585 24" stroke="var(--accent)" stroke-width="2.5" stroke-linecap="round" filter="url(#waveGlow)" />
-            <path d="M 720 24 C 735 24, 735 50, 745 50 C 755 50, 755 24, 770 24" stroke="var(--accent)" stroke-width="2.5" stroke-linecap="round" filter="url(#waveGlow)" />
-
-            <!-- Travelling Bright Dot on 18s Loop -->
-            <circle r="4.5" fill="#FFFFFF" filter="url(#waveGlow)">
-              <animateMotion dur="18s" repeatCount="indefinite">
-                <mpath href="#rhythmTrack" />
-              </animateMotion>
-            </circle>
-          </svg>
-        </div>
-
-        <div class="rhythm-labels">
-          <span>Focus 25</span>
-          <span class="label-sep">·</span>
-          <span class="rest-accent">Rest 5</span>
-          <span class="label-sep">·</span>
-          <span>minutes · 4 rounds · about 2 hours</span>
-        </div>
       </div>
     </div>
   </section>
@@ -1868,7 +1810,7 @@ const html = `<!DOCTYPE html>
             <h3 class="card-lead-text md">Recovery needs protecting.</h3>
           </div>
           <p class="card-muted-text">
-            So Revive looks after it for you. When your focus time ends, it moves you into rest, so you do not have to remember to stop or argue yourself into it.
+            So Revive looks after it for you. In a session you start, it moves you into rest when your focus time ends, so you do not have to remember to stop or argue yourself into it.
           </p>
         </div>
       </div>
@@ -2230,6 +2172,8 @@ const html = `<!DOCTYPE html>
               Download for macOS
             </button>
           </div>
+
+          <!-- <p class="close-faint-line">Nothing happens until you start a session.</p> -->
         </div>
       </div>
     </div>
