@@ -86,7 +86,7 @@ export function OverlayScreen({ mode }: OverlayScreenProps): React.JSX.Element {
         handleResumeFocus()
         return
       }
-      if (e.key === ' ' || e.key === 'Enter') {
+      if (e.key === 'Enter') {
         const snap = snapshotRef.current
         if (snap?.phase === 'transition-to-rest') {
           e.preventDefault()
@@ -204,68 +204,126 @@ export function OverlayScreen({ mode }: OverlayScreenProps): React.JSX.Element {
 
     // 1. FOCUS -> REST INTRO SCREEN (transition-to-rest)
     if (snapshot.phase === 'transition-to-rest') {
-      const secondsRemaining = Math.max(1, Math.ceil(snapshot.remainingMs / 1000))
+      const secondsRemaining = Math.min(5, Math.max(1, Math.ceil(snapshot.remainingMs / 1000)))
       const activityTitle = currentActivity?.name || 'Rest & Recharge'
       const roundLabel = `Rest ${snapshot.loopIndex + 1} of ${snapshot.loopCount}`
+      const ringRadius = 88
+      const circumference = 2 * Math.PI * ringRadius
+      const progressFraction = Math.max(0, Math.min(1, secondsRemaining / 5))
+      const strokeDashoffset = circumference * (1 - progressFraction)
 
       return (
-        <div className="relative w-full h-full flex flex-col justify-between items-center select-none z-10 font-mono px-8 py-8 md:px-14 md:py-10">
-          {/* Subtle Top Bar */}
-          <header className="w-full flex items-center justify-between z-20">
-            <span className="text-[11px] tracking-[0.2em] uppercase text-white/30 font-mono">
-              Revive
-            </span>
-            <span className="text-[11px] tracking-[0.18em] uppercase text-white/40 font-mono">
+        <div className="relative w-full h-full flex flex-col justify-between items-center select-none z-10 font-mono px-8 py-8 md:px-16 md:py-12">
+          {/* Top Bar */}
+          <header className="w-full max-w-5xl flex items-center justify-between z-20">
+            <div className="flex items-center gap-2.5">
+              <span className="w-2 h-2 rounded-full bg-[#AFDDFF] shadow-[0_0_10px_#AFDDFF] animate-pulse" />
+              <span className="text-[11px] tracking-[0.25em] uppercase text-white/50 font-mono">
+                Revive
+              </span>
+            </div>
+            <span className="text-[11px] tracking-[0.2em] uppercase text-white/40 font-mono">
               {roundLabel}
             </span>
           </header>
 
-          {/* Meditative Centerpiece */}
-          <main className="flex-1 flex flex-col items-center justify-center max-w-xl w-full px-6 text-center z-20 animate-fade-in my-auto py-2">
-            <span className="text-[11px] tracking-[0.25em] uppercase text-[#AFDDFF]/70 font-mono mb-2">
-              Time to unwind
-            </span>
+          {/* 2-Column Hero Section */}
+          <main className="w-full max-w-5xl grid grid-cols-1 md:grid-cols-12 gap-10 md:gap-16 items-center my-auto px-4 z-20 animate-fade-in">
+            {/* Left Column: Editorial Information */}
+            <div className="md:col-span-7 flex flex-col items-start text-left">
+              <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full border border-[#AFDDFF]/25 bg-[rgba(175,221,255,0.06)] text-[10px] uppercase tracking-[0.22em] text-[#AFDDFF] font-mono mb-4">
+                <span className="w-1.5 h-1.5 rounded-full bg-[#AFDDFF]" />
+                <span>Next up · Rest cycle</span>
+              </div>
 
-            <h1
-              className="text-4xl md:text-6xl text-white font-light tracking-wide my-2 leading-tight"
-              style={{ fontFamily: 'var(--font-display)' }}
-            >
-              {activityTitle}
-            </h1>
-
-            {currentActivity?.tagline && (
-              <p className="text-xs md:text-sm text-white/45 tracking-wider font-mono max-w-md my-1 font-light">
-                {currentActivity.tagline}
-              </p>
-            )}
-
-            {/* Glowing Ethereal Countdown Orb */}
-            <div className="relative w-20 h-20 flex items-center justify-center my-8">
-              <div className="absolute inset-0 rounded-full border border-[#AFDDFF]/20 animate-ping opacity-25" />
-              <div className="absolute inset-0 rounded-full border border-[#AFDDFF]/35 shadow-[0_0_30px_rgba(175,221,255,0.2)] bg-[rgba(175,221,255,0.03)]" />
-              <span
-                className="text-3xl font-light text-white font-mono tabular-nums tracking-normal z-10"
+              <h1
+                className="text-4xl md:text-5xl lg:text-6xl text-white font-light tracking-tight leading-[1.08] mb-4"
                 style={{ fontFamily: 'var(--font-display)' }}
               >
-                {secondsRemaining}
-              </span>
+                {activityTitle}
+              </h1>
+
+              {currentActivity?.tagline && (
+                <p className="text-sm md:text-base text-white/70 font-light leading-relaxed mb-4 font-mono max-w-lg">
+                  {currentActivity.tagline}
+                </p>
+              )}
+
+              {(currentActivity?.notes || currentActivity?.note) && (
+                <div className="p-4 rounded-xl bg-white/[0.03] border border-white/10 text-xs text-white/55 leading-relaxed font-mono max-w-lg mb-6 line-clamp-3">
+                  {currentActivity.notes || currentActivity.note}
+                </div>
+              )}
+
+              {/* Action CTA */}
+              <div className="flex items-center gap-4 mt-2">
+                <button
+                  type="button"
+                  onClick={handleBeginRestNow}
+                  className="group flex items-center gap-3 px-8 py-3 rounded-full border border-[rgba(175,221,255,0.4)] bg-[rgba(175,221,255,0.1)] hover:bg-[#AFDDFF] hover:text-black text-[#AFDDFF] text-xs font-mono tracking-[0.18em] uppercase transition-all duration-300 cursor-pointer shadow-[0_0_24px_rgba(175,221,255,0.18)] hover:shadow-[0_0_36px_rgba(175,221,255,0.5)] active:scale-95"
+                >
+                  <span>Begin now</span>
+                  <span className="text-[11px] opacity-70 group-hover:opacity-100 font-mono">↵</span>
+                </button>
+              </div>
             </div>
 
-            {/* Action pill */}
-            <button
-              type="button"
-              onClick={handleBeginRestNow}
-              className="group flex items-center gap-2.5 px-6 py-2.5 rounded-full border border-[rgba(175,221,255,0.3)] bg-[rgba(175,221,255,0.08)] hover:bg-[#AFDDFF] hover:text-black text-[#AFDDFF] text-xs font-mono tracking-[0.16em] uppercase transition-all duration-300 cursor-pointer shadow-[0_0_16px_rgba(175,221,255,0.12)] hover:shadow-[0_0_28px_rgba(175,221,255,0.4)] active:scale-95"
-            >
-              <span>Begin now</span>
-              <span className="text-[10px] opacity-60 group-hover:opacity-100 font-mono">↵</span>
-            </button>
+            {/* Right Column: Visual Centerpiece Countdown Ring */}
+            <div className="md:col-span-5 flex flex-col items-center justify-center">
+              <div className="relative w-[210px] h-[210px] flex items-center justify-center">
+                {/* Soft atmospheric ambient glow */}
+                <div className="absolute inset-0 rounded-full bg-[radial-gradient(circle,rgba(175,221,255,0.12)_0%,transparent_70%)] pointer-events-none" />
+
+                {/* SVG Progress Arc */}
+                <svg className="w-full h-full -rotate-90 pointer-events-none" viewBox="0 0 210 210">
+                  <circle
+                    cx="105"
+                    cy="105"
+                    r={ringRadius}
+                    fill="none"
+                    stroke="rgba(255, 255, 255, 0.08)"
+                    strokeWidth="3"
+                  />
+                  <circle
+                    cx="105"
+                    cy="105"
+                    r={ringRadius}
+                    fill="none"
+                    stroke="#AFDDFF"
+                    strokeWidth="4"
+                    strokeDasharray={circumference}
+                    strokeDashoffset={strokeDashoffset}
+                    strokeLinecap="round"
+                    style={{
+                      transition: 'stroke-dashoffset 0.8s cubic-bezier(0.16, 1, 0.3, 1)',
+                      filter: 'drop-shadow(0 0 8px rgba(175, 221, 255, 0.6))'
+                    }}
+                  />
+                </svg>
+
+                {/* Number inside */}
+                <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
+                  <span
+                    className="text-6xl font-light text-white font-mono tabular-nums tracking-tight leading-none"
+                    style={{ fontFamily: 'var(--font-display)' }}
+                  >
+                    {secondsRemaining}
+                  </span>
+                  <span className="text-[10px] uppercase tracking-[0.26em] text-white/40 font-mono mt-2">
+                    seconds
+                  </span>
+                </div>
+              </div>
+            </div>
           </main>
 
           {/* Footer */}
-          <footer className="w-full flex items-center justify-center z-20">
+          <footer className="w-full max-w-5xl flex items-center justify-between z-20 pt-4 border-t border-white/[0.06]">
             <span className="text-[11px] text-white/30 tracking-[0.12em] select-none font-mono">
-              Press ESC or Space
+              Press ESC to escape
+            </span>
+            <span className="text-[11px] text-white/30 tracking-[0.12em] select-none font-mono">
+              Press Enter to begin
             </span>
           </footer>
         </div>
@@ -274,76 +332,128 @@ export function OverlayScreen({ mode }: OverlayScreenProps): React.JSX.Element {
 
     // 2. REST -> FOCUS TRANSITION SCREEN (transition-to-focus)
     if (snapshot.phase === 'transition-to-focus') {
-      const secondsRemaining = Math.max(1, Math.ceil(snapshot.remainingMs / 1000))
+      const secondsRemaining = Math.min(5, Math.max(1, Math.ceil(snapshot.remainingMs / 1000)))
       const roundLabel = `Round ${snapshot.loopIndex + 1} of ${snapshot.loopCount}`
+      const ringRadius = 88
+      const circumference = 2 * Math.PI * ringRadius
+      const progressFraction = Math.max(0, Math.min(1, secondsRemaining / 5))
+      const strokeDashoffset = circumference * (1 - progressFraction)
 
       return (
-        <div className="relative w-full h-full flex flex-col justify-between items-center select-none z-10 font-mono px-8 py-8 md:px-14 md:py-10">
-          <header className="w-full flex items-center justify-between z-20">
-            <span className="text-[11px] tracking-[0.2em] uppercase text-white/30 font-mono">
-              Revive
-            </span>
-            <span className="text-[11px] tracking-[0.18em] uppercase text-white/40 font-mono">
+        <div className="relative w-full h-full flex flex-col justify-between items-center select-none z-10 font-mono px-8 py-8 md:px-16 md:py-12">
+          {/* Top Bar */}
+          <header className="w-full max-w-5xl flex items-center justify-between z-20">
+            <div className="flex items-center gap-2.5">
+              <span className="w-2 h-2 rounded-full bg-[#AFDDFF] shadow-[0_0_10px_#AFDDFF] animate-pulse" />
+              <span className="text-[11px] tracking-[0.25em] uppercase text-white/50 font-mono">
+                Revive
+              </span>
+            </div>
+            <span className="text-[11px] tracking-[0.2em] uppercase text-white/40 font-mono">
               {roundLabel}
             </span>
           </header>
 
-          <main className="flex-1 flex flex-col items-center justify-center max-w-xl w-full px-6 text-center z-20 animate-fade-in my-auto py-2">
-            <span className="text-[11px] tracking-[0.25em] uppercase text-[#AFDDFF]/70 font-mono mb-2">
-              Next session
-            </span>
-
-            {snapshot.leftOffNote && snapshot.leftOffNote.trim() ? (
-              <div className="my-2 max-w-xl">
-                <h1
-                  className="text-2xl md:text-4xl text-white font-light tracking-wide leading-relaxed italic"
-                  style={{ fontFamily: 'var(--font-display)' }}
-                >
-                  "{snapshot.leftOffNote}"
-                </h1>
-                <span className="text-[11px] tracking-[0.18em] uppercase text-white/40 font-mono block mt-2">
-                  Where you left off
-                </span>
+          {/* 2-Column Hero Section */}
+          <main className="w-full max-w-5xl grid grid-cols-1 md:grid-cols-12 gap-10 md:gap-16 items-center my-auto px-4 z-20 animate-fade-in">
+            {/* Left Column: Focus Info & Left Off Note */}
+            <div className="md:col-span-7 flex flex-col items-start text-left">
+              <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full border border-[#AFDDFF]/25 bg-[rgba(175,221,255,0.06)] text-[10px] uppercase tracking-[0.22em] text-[#AFDDFF] font-mono mb-4">
+                <span className="w-1.5 h-1.5 rounded-full bg-[#AFDDFF]" />
+                <span>Next focus block</span>
               </div>
-            ) : (
-              <div className="my-2">
-                <h1
-                  className="text-4xl md:text-6xl text-white font-light tracking-wide leading-tight"
-                  style={{ fontFamily: 'var(--font-display)' }}
-                >
-                  Ready to focus
-                </h1>
-                <p className="text-xs md:text-sm text-white/45 tracking-wider font-mono mt-1 font-light">
-                  Take a breath and settle in
-                </p>
-              </div>
-            )}
 
-            {/* Glowing Ethereal Countdown Orb */}
-            <div className="relative w-20 h-20 flex items-center justify-center my-8">
-              <div className="absolute inset-0 rounded-full border border-[#AFDDFF]/20 animate-ping opacity-25" />
-              <div className="absolute inset-0 rounded-full border border-[#AFDDFF]/35 shadow-[0_0_30px_rgba(175,221,255,0.2)] bg-[rgba(175,221,255,0.03)]" />
-              <span
-                className="text-3xl font-light text-white font-mono tabular-nums tracking-normal z-10"
+              <h1
+                className="text-4xl md:text-5xl lg:text-6xl text-white font-light tracking-tight leading-[1.08] mb-4"
                 style={{ fontFamily: 'var(--font-display)' }}
               >
-                {secondsRemaining}
-              </span>
+                Ready to focus
+              </h1>
+
+              {snapshot.leftOffNote && snapshot.leftOffNote.trim() ? (
+                <div className="w-full p-4 rounded-xl bg-white/[0.04] border border-[rgba(175,221,255,0.25)] shadow-[0_0_24px_rgba(175,221,255,0.08)] mb-6 max-w-lg">
+                  <span className="text-[10px] tracking-[0.2em] uppercase text-[#AFDDFF] font-mono block mb-1.5 font-medium">
+                    Where you left off
+                  </span>
+                  <p className="text-base md:text-lg text-white font-normal leading-relaxed italic">
+                    "{snapshot.leftOffNote}"
+                  </p>
+                </div>
+              ) : (
+                <p className="text-sm md:text-base text-white/70 font-light leading-relaxed mb-6 font-mono max-w-lg">
+                  Take a breath and settle in. Your upcoming focus session is about to begin.
+                </p>
+              )}
+
+              {/* Action CTA */}
+              <div className="flex items-center gap-4 mt-2">
+                <button
+                  type="button"
+                  onClick={handleBackToWork}
+                  className="group flex items-center gap-3 px-8 py-3 rounded-full border border-[rgba(175,221,255,0.4)] bg-[rgba(175,221,255,0.1)] hover:bg-[#AFDDFF] hover:text-black text-[#AFDDFF] text-xs font-mono tracking-[0.18em] uppercase transition-all duration-300 cursor-pointer shadow-[0_0_24px_rgba(175,221,255,0.18)] hover:shadow-[0_0_36px_rgba(175,221,255,0.5)] active:scale-95"
+                >
+                  <span>Resume focus</span>
+                  <span className="text-[11px] opacity-70 group-hover:opacity-100 font-mono">↵</span>
+                </button>
+              </div>
             </div>
 
-            <button
-              type="button"
-              onClick={handleBackToWork}
-              className="group flex items-center gap-2.5 px-6 py-2.5 rounded-full border border-[rgba(175,221,255,0.3)] bg-[rgba(175,221,255,0.08)] hover:bg-[#AFDDFF] hover:text-black text-[#AFDDFF] text-xs font-mono tracking-[0.16em] uppercase transition-all duration-300 cursor-pointer shadow-[0_0_16px_rgba(175,221,255,0.12)] hover:shadow-[0_0_28px_rgba(175,221,255,0.4)] active:scale-95"
-            >
-              <span>Resume now</span>
-              <span className="text-[10px] opacity-60 group-hover:opacity-100 font-mono">↵</span>
-            </button>
+            {/* Right Column: Visual Centerpiece Countdown Ring */}
+            <div className="md:col-span-5 flex flex-col items-center justify-center">
+              <div className="relative w-[210px] h-[210px] flex items-center justify-center">
+                {/* Soft atmospheric ambient glow */}
+                <div className="absolute inset-0 rounded-full bg-[radial-gradient(circle,rgba(175,221,255,0.12)_0%,transparent_70%)] pointer-events-none" />
+
+                {/* SVG Progress Arc */}
+                <svg className="w-full h-full -rotate-90 pointer-events-none" viewBox="0 0 210 210">
+                  <circle
+                    cx="105"
+                    cy="105"
+                    r={ringRadius}
+                    fill="none"
+                    stroke="rgba(255, 255, 255, 0.08)"
+                    strokeWidth="3"
+                  />
+                  <circle
+                    cx="105"
+                    cy="105"
+                    r={ringRadius}
+                    fill="none"
+                    stroke="#AFDDFF"
+                    strokeWidth="4"
+                    strokeDasharray={circumference}
+                    strokeDashoffset={strokeDashoffset}
+                    strokeLinecap="round"
+                    style={{
+                      transition: 'stroke-dashoffset 0.8s cubic-bezier(0.16, 1, 0.3, 1)',
+                      filter: 'drop-shadow(0 0 8px rgba(175, 221, 255, 0.6))'
+                    }}
+                  />
+                </svg>
+
+                {/* Number inside */}
+                <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
+                  <span
+                    className="text-6xl font-light text-white font-mono tabular-nums tracking-tight leading-none"
+                    style={{ fontFamily: 'var(--font-display)' }}
+                  >
+                    {secondsRemaining}
+                  </span>
+                  <span className="text-[10px] uppercase tracking-[0.26em] text-white/40 font-mono mt-2">
+                    seconds
+                  </span>
+                </div>
+              </div>
+            </div>
           </main>
 
-          <footer className="w-full flex items-center justify-center z-20">
+          {/* Footer */}
+          <footer className="w-full max-w-5xl flex items-center justify-between z-20 pt-4 border-t border-white/[0.06]">
             <span className="text-[11px] text-white/30 tracking-[0.12em] select-none font-mono">
-              Press ESC or Space
+              Press ESC to escape
+            </span>
+            <span className="text-[11px] text-white/30 tracking-[0.12em] select-none font-mono">
+              Press Enter to resume
             </span>
           </footer>
         </div>
@@ -362,8 +472,7 @@ export function OverlayScreen({ mode }: OverlayScreenProps): React.JSX.Element {
       )
     }
 
-    // 4. REST ACTIVITY PLAYER
-    const canSnoozeSetting = settings?.takeover?.allowSnooze ?? true
+    // 4. REST ACTIVITY PLAYER (Snooze permanently disabled across all rest screens)
     if (currentActivity) {
       if (currentActivity.media?.kind === 'youtube') {
         return (
@@ -380,9 +489,8 @@ export function OverlayScreen({ mode }: OverlayScreenProps): React.JSX.Element {
           <SpotifyPlayer
             activity={currentActivity}
             snapshot={snapshot}
-            onSnooze={handleSnooze}
             onResumeFocus={handleResumeFocus}
-            canSnooze={canSnoozeSetting}
+            canSnooze={false}
           />
         )
       }
@@ -400,9 +508,8 @@ export function OverlayScreen({ mode }: OverlayScreenProps): React.JSX.Element {
           <BreathingPlayer
             activity={currentActivity}
             snapshot={snapshot}
-            onSnooze={handleSnooze}
             onResumeFocus={handleResumeFocus}
-            canSnooze={canSnoozeSetting}
+            canSnooze={false}
           />
         )
       }
@@ -410,9 +517,8 @@ export function OverlayScreen({ mode }: OverlayScreenProps): React.JSX.Element {
         <CustomPlayer
           activity={currentActivity}
           snapshot={snapshot}
-          onSnooze={handleSnooze}
           onResumeFocus={handleResumeFocus}
-          canSnooze={canSnoozeSetting}
+          canSnooze={false}
         />
       )
     }

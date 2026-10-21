@@ -3,8 +3,6 @@ import { Activity, SessionSnapshot } from '../../../shared/types'
 import { normalizeYouTubeUrl } from '../../../shared/youtube'
 import { SharedShell } from './SharedShell'
 
-export { normalizeYouTubeUrl }
-
 export interface VideoPlayerProps {
   activity: Activity;
   snapshot: SessionSnapshot;

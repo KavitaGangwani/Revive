@@ -63,15 +63,6 @@ export function SharedShell({
             <span className="text-[11px] text-[var(--muted)] tracking-[0.08em] font-mono select-none">
               Press ESC to escape.
             </span>
-            {canSnooze && !snoozeUsed && onSnooze && (
-              <button
-                type="button"
-                onClick={onSnooze}
-                className="px-3 py-1 text-[10px] uppercase tracking-[0.12em] text-[var(--muted)] hover:text-white border border-[var(--hair)] hover:border-[var(--faint)] bg-[rgba(255,255,255,0.03)] hover:bg-[rgba(255,255,255,0.08)] rounded-[4px] transition-all cursor-pointer font-mono"
-              >
-                Snooze 2m
-              </button>
-            )}
           </div>
         </div>
 

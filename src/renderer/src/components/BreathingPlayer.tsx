@@ -290,15 +290,6 @@ export function BreathingPlayer({
             <span className="text-[11px] text-[var(--muted,#8a99a8)] tracking-[0.08em] select-none font-mono">
               Press ESC to escape.
             </span>
-            {canSnooze && !snapshot.snoozeUsed && onSnooze && (
-              <button
-                type="button"
-                onClick={onSnooze}
-                className="px-3 py-1 text-[10px] uppercase tracking-[0.12em] text-[var(--muted,#8a99a8)] hover:text-white border border-[var(--hair,rgba(255,255,255,0.08))] hover:border-[var(--faint,rgba(255,255,255,0.28))] bg-[rgba(255,255,255,0.03)] hover:bg-[rgba(255,255,255,0.08)] rounded-[4px] transition-all cursor-pointer font-mono"
-              >
-                Snooze 2m
-              </button>
-            )}
           </div>
         </div>
 
