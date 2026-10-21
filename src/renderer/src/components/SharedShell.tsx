@@ -1,8 +1,9 @@
 import React from 'react'
-import { SessionSnapshot } from '../../../shared/types'
+import { Activity, SessionSnapshot } from '../../../shared/types'
 
 export interface SharedShellProps {
   snapshot: SessionSnapshot;
+  activity?: Activity;
   onSnooze?: () => void;
   onResumeFocus: () => void;
   children: React.ReactNode;
@@ -11,6 +12,7 @@ export interface SharedShellProps {
 
 export function SharedShell({
   snapshot,
+  activity,
   onSnooze,
   onResumeFocus,
   children,
@@ -25,11 +27,21 @@ export function SharedShell({
   const progressPct = totalMs > 0 ? Math.min(100, Math.max(0, ((totalMs - remainingMs) / totalMs) * 100)) : 0
 
   return (
-    <div className="relative w-full h-full flex flex-col justify-between select-none z-10">
-      {/* Quiet Top Bar */}
+    <div className="relative w-full h-full flex flex-col justify-between select-none z-10 font-mono">
+      {/* Quiet Top Bar: Rest N of M + Activity Name + Overall Rest Countdown */}
       <header className="w-full flex items-center justify-between px-8 py-6 z-20">
-        <div className="text-[11px] tracking-[0.14em] uppercase text-[var(--muted)] font-mono">
-          Rest {loopIndex + 1} of {loopCount}
+        <div className="flex items-center gap-3">
+          <span className="text-[11px] tracking-[0.14em] uppercase text-[var(--muted)] font-mono">
+            Rest {loopIndex + 1} of {loopCount}
+          </span>
+          {activity?.name && (
+            <>
+              <span className="text-[11px] text-white/30 font-mono">·</span>
+              <span className="text-[12px] text-[var(--text)] tracking-[0.08em] font-medium font-mono">
+                {activity.name}
+              </span>
+            </>
+          )}
         </div>
         <div className="flex items-center gap-3 font-mono">
           <span className="w-2 h-2 rounded-full bg-[var(--accent)] shadow-[0_0_8px_var(--accent)] animate-pulse" />
@@ -44,12 +56,23 @@ export function SharedShell({
         {children}
       </main>
 
-      {/* Bottom Bar: Hairline progress + Centered Esc prompt */}
+      {/* Bottom Bar: Hairline progress + Esc hint + Resume focus pill */}
       <footer className="w-full flex flex-col z-20">
-        <div className="w-full flex items-center justify-center px-8 py-3.5">
-          <span className="text-[11px] text-[var(--muted)] tracking-[0.08em] font-mono select-none">
-            Press Escape to escape.
-          </span>
+        <div className="w-full flex items-center justify-between px-8 py-3.5">
+          <div className="flex items-center gap-4">
+            <span className="text-[11px] text-[var(--muted)] tracking-[0.08em] font-mono select-none">
+              Press ESC to escape.
+            </span>
+            {canSnooze && !snoozeUsed && onSnooze && (
+              <button
+                type="button"
+                onClick={onSnooze}
+                className="px-3 py-1 text-[10px] uppercase tracking-[0.12em] text-[var(--muted)] hover:text-white border border-[var(--hair)] hover:border-[var(--faint)] bg-[rgba(255,255,255,0.03)] hover:bg-[rgba(255,255,255,0.08)] rounded-[4px] transition-all cursor-pointer font-mono"
+              >
+                Snooze 2m
+              </button>
+            )}
+          </div>
         </div>
 
         {/* 2px Hairline Progress Bar */}

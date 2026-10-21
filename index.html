@@ -2275,9 +2275,9 @@
             <span style="font-size:11px;color:var(--muted);">~78 MB</span>
           </div>
           <p style="font-size:11px;color:var(--muted);">Windows 10 & 11 (64-bit installer)</p>
-          <button type="button" class="pill-btn primary" style="height:36px;padding:0 18px;font-size:11px;margin-top:10px;" onclick="triggerFileDownload('win')">
+          <a href="https://github.com/KavitaGangwani/Revive/releases/download/v0.1.0/Revive-Setup-0.1.0.exe" download="Revive-Setup-0.1.0.exe" class="pill-btn primary" style="height:36px;padding:0 18px;font-size:11px;margin-top:10px;text-decoration:none;display:inline-flex;align-items:center;justify-content:center;" onclick="triggerFileDownload('win')">
             Download .exe
-          </button>
+          </a>
         </div>
 
         <div class="modal-step">
@@ -2302,9 +2302,9 @@
             <span style="font-size:11px;color:var(--muted);">~82 MB</span>
           </div>
           <p style="font-size:11px;color:var(--muted);">Universal build (Apple Silicon M1/M2/M3/M4 & Intel)</p>
-          <button type="button" class="pill-btn primary" style="height:36px;padding:0 18px;font-size:11px;margin-top:10px;" onclick="triggerFileDownload('mac')">
+          <a href="https://github.com/KavitaGangwani/Revive/releases/download/v0.1.0/Revive-0.1.0-mac.dmg" download="Revive-0.1.0-mac.dmg" class="pill-btn primary" style="height:36px;padding:0 18px;font-size:11px;margin-top:10px;text-decoration:none;display:inline-flex;align-items:center;justify-content:center;" onclick="triggerFileDownload('mac')">
             Download .dmg
-          </button>
+          </a>
         </div>
 
         <div class="modal-step">
@@ -2768,7 +2768,12 @@
     }
 
     function triggerFileDownload(os) {
-      const filename = os === 'mac' ? 'Revive-0.1.0-mac.dmg' : 'Revive-Setup-0.1.0.exe';
+      const version = '0.1.0';
+      const filename = os === 'mac' ? ('Revive-' + version + '-mac.dmg') : ('Revive-Setup-' + version + '.exe');
+      const downloadUrl = os === 'mac'
+        ? ('https://github.com/KavitaGangwani/Revive/releases/download/v' + version + '/Revive-' + version + '-mac.dmg')
+        : ('https://github.com/KavitaGangwani/Revive/releases/download/v' + version + '/Revive-Setup-' + version + '.exe');
+
       const toastFn = document.getElementById('toast-filename');
       if (toastFn) toastFn.textContent = filename;
 
@@ -2778,17 +2783,13 @@
         setTimeout(() => toast.classList.remove('show'), 5000);
       }
 
-      const content = os === 'mac' ? 'Revive macOS Universal DMG Build' : 'Revive Windows Desktop Installer (.exe)';
-      const blob = new Blob([content], { type: 'application/octet-stream' });
-      const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
-      a.href = url;
+      a.href = downloadUrl;
       a.download = filename;
       document.body.appendChild(a);
       a.click();
       setTimeout(() => {
         document.body.removeChild(a);
-        URL.revokeObjectURL(url);
       }, 200);
     }
   </script>

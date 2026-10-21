@@ -26,7 +26,8 @@ describe('Settings Data and Clamping', () => {
       },
       sound: {
         chimeAtRestStart: true,
-        chimeAtRestEnd: true
+        chimeAtRestEnd: true,
+        notificationSounds: true
       },
       autostart: false,
       miniFocusWindow: true

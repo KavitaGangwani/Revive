@@ -38,32 +38,32 @@ When a rest period begins (`transition-to-rest` or `rest`):
 ## 3. Activity Players
 
 ### Breathing Player (Immersive, Chrome-Free)
+- **Pre-roll**: Before the first breath starts, displays a dedicated "Get comfortable" screen with "Breathing begins in 5 4 3 2 1" (5 seconds, its own part of the transition-to-rest intro, not counted in rest time). Audio cue schedule starts immediately after pre-roll.
 - **Visuals**:
-  - Luminous light core (Orb) smoothly scaling from `0.55` to `1.0` (Inhale) and `1.0` to `0.55` (Exhale) with ease-in-out curve.
-  - Outer 60s satellite orbit ring.
-  - Thin SVG circular phase progress ring.
-  - Monospace seconds counter inside orb.
-  - Phase word rising 8px and crossfading beneath orb (`INHALE`, `HOLD`, `EXHALE`).
+  - Luminous light core (Orb) driven by Web Animations API or CSS transitions matching the exact phase seconds (Inhale grows from `0.6` to `1.0`, Hold stays stable, Exhale shrinks from `1.0` to `0.6`). No per-frame React state updates.
+  - Thin SVG circular phase progress ring matching phase duration.
+  - Monospace seconds counter inside orb (`Math.ceil((phaseEndsAt - now)/1000)`), updated only on integer change so React renders once per second.
+  - Large phase word (`INHALE` / `HOLD` / `EXHALE`), `48px`, display font, centered below the orb, with clean typographic hierarchy.
   - 2px hairline rest progress bar at the bottom edge.
-- **Controls**: Hidden by default. Fade in for 6 seconds on rest start, fading out during session, reappearing smoothly on mouse movement or keyboard focus.
-- **Timing**: Hard-timed (auto-completes when rest duration expires).
+- **Timer Rule**:
+  - Breathing is the one intentional exception that shows TWO numeric timers: the breath-seconds counter inside the orb (`4, 3, 2, 1`) AND the small overall rest countdown in the top bar (next to "Rest N of M" and the pulsating status dot).
+  - Every other activity (Custom, Movement, Routine, Video, Spotify) shows ONLY the small overall rest countdown in the top bar. Nothing else shows a number.
+- **Quiet Rest Experience**: Zero on-screen "Resume focus" buttons. The rest environment is pure, serene, and free from buttons that tempt early exit.
+- **Timing**: Main process owns authoritative clock and generates `BreathingScheduleItem[]` with epoch timestamps (`startEpochMs`, `durationMs`). Renderer derives all phase and timer state from `Date.now()`.
 
 ### Video Player
 - 16:9 embedded `<webview>` container with hairline border and subtle luminous top edge.
 - Quiet top bar ("Rest N of M", status dot, countdown timer).
 - Tag + Title beneath video.
-- Soft-timed: Accent pill button labelled `"Resume focus"`.
 
 ### Spotify Player (*Scope Change*)
 - Embedded `<webview>` pointing to Spotify playlist/album embed URL with persisted partition (`persist:spotify`).
 - Cover and equaliser aesthetic.
-- Soft-timed: Accent pill button labelled `"Resume focus"`.
 
 ### Custom & Movement Players
 - Monospace user-defined activity title.
 - Thin SVG circular ring countdown timer.
 - Note beneath ("Leave the screen. Stretch your legs.").
-- Soft-timed: Accent pill button labelled `"Resume focus"`.
 
 ---
 

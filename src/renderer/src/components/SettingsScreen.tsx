@@ -14,7 +14,8 @@ const defaultSettings: AppSettings = {
   },
   sound: {
     chimeAtRestStart: true,
-    chimeAtRestEnd: true
+    chimeAtRestEnd: true,
+    notificationSounds: true
   },
   autostart: false,
   miniFocusWindow: true
@@ -416,6 +417,25 @@ export const SettingsScreen: React.FC<SettingsScreenProps> = () => {
                 ariaLabel="Chime when rest ends"
                 onChange={(chimeAtRestEnd) =>
                   updateSetting({ sound: { chimeAtRestEnd } })
+                }
+              />
+            </div>
+          </div>
+
+          {/* Notification sounds */}
+          <div className="setting-row">
+            <div className="setting-info">
+              <div className="setting-title">Notification sounds</div>
+              <div className="setting-desc">
+                Play a short chime when rest warnings and reminders appear
+              </div>
+            </div>
+            <div className="setting-controls">
+              <Switch
+                checked={settings.sound.notificationSounds ?? true}
+                ariaLabel="Notification sounds"
+                onChange={(notificationSounds) =>
+                  updateSetting({ sound: { notificationSounds } })
                 }
               />
             </div>

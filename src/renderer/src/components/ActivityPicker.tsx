@@ -56,9 +56,9 @@ export function ActivityPicker({
                 {act.name}
               </span>
 
-              {act.note && (
+              {(act.tagline || act.notes || act.note) && (
                 <span className="mt-1 text-[10px] text-[var(--muted)] tracking-[0.04em] line-clamp-2">
-                  {act.note}
+                  {act.tagline || act.notes || act.note}
                 </span>
               )}
             </button>

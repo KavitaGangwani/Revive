@@ -2,17 +2,12 @@ import React, { useEffect, useState, useRef } from 'react'
 import {
   Activity,
   SessionSnapshot,
-  SoundPack,
-  PhaseKind,
   BreathingScheduleItem
 } from '../../../shared/types'
 
 export interface BreathingPlayerProps {
   activity: Activity;
   snapshot: SessionSnapshot;
-  soundPacks?: SoundPack[];
-  initialSoundPackId?: string | null;
-  volume?: number;
   onResumeFocus?: () => void;
   onSnooze?: () => void;
   canSnooze?: boolean;
@@ -21,19 +16,26 @@ export interface BreathingPlayerProps {
 export function BreathingPlayer({
   activity,
   snapshot,
-  onResumeFocus
+  onResumeFocus,
+  onSnooze,
+  canSnooze
 }: BreathingPlayerProps): React.JSX.Element {
   const { remainingMs, totalMs, breathingSchedule } = snapshot
-  const [currentPhaseKind, setCurrentPhaseKind] = useState<PhaseKind>('in')
-  const [currentPhaseLabel, setCurrentPhaseLabel] = useState<string>('INHALE')
-  const [phaseCurrentSecond, setPhaseCurrentSecond] = useState<number>(1)
-  const [phaseTotalSeconds, setPhaseTotalSeconds] = useState<number>(4)
-  const [phaseProgressPct, setPhaseProgressPct] = useState<number>(0)
-  const [orbScale, setOrbScale] = useState<number>(0.6)
 
-  const animFrameRef = useRef<number | null>(null)
+  const [displayedSec, setDisplayedSec] = useState<number>(4)
+  const [phaseWord, setPhaseWord] = useState<string>('INHALE')
 
-  // Direct Escape key handler inside the component
+  const orbRef = useRef<HTMLDivElement>(null)
+  const circleRef = useRef<SVGCircleElement>(null)
+
+  // Stable ref to schedule so incoming 250ms ticks don't tear down the animation loop
+  const scheduleRef = useRef<BreathingScheduleItem[] | undefined>(breathingSchedule)
+  scheduleRef.current = breathingSchedule
+
+  const lastSecRef = useRef<number>(-1)
+  const lastIndexRef = useRef<number>(-1)
+
+  // Direct Escape key listener (no visible buttons on screen)
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'Escape') {
@@ -48,173 +50,265 @@ export function BreathingPlayer({
     }
   }, [onResumeFocus])
 
-  // Single-clock Visual Update Loop tied to Epoch time
-  useEffect(() => {
-    const updateVisuals = () => {
-      const nowEpoch = Date.now()
-      const schedule = breathingSchedule || []
+  // SVG circular ring circumference (r=115, circumference = 2 * PI * 115 ≈ 722.566)
+  const ringRadius = 115
+  const circumference = 2 * Math.PI * ringRadius
 
-      // Find current schedule item
+  // Authoritative single-clock visual update loop driven directly by Date.now() against the schedule
+  useEffect(() => {
+    let animId: number | null = null
+
+    const tick = () => {
+      const now = Date.now()
+      const schedule = scheduleRef.current || []
+
+      if (schedule.length === 0) {
+        animId = requestAnimationFrame(tick)
+        return
+      }
+
+      // 1. Resolve current active phase item from schedule
       let currentItem: BreathingScheduleItem | null = null
-      for (const item of schedule) {
-        if (nowEpoch >= item.startEpochMs && nowEpoch < item.startEpochMs + item.durationMs) {
+      for (let i = 0; i < schedule.length; i++) {
+        const item = schedule[i]
+        const phaseEndsAt = item.startEpochMs + item.durationMs
+        if (now >= item.startEpochMs && now < phaseEndsAt) {
           currentItem = item
           break
         }
       }
 
-      if (!currentItem && schedule.length > 0) {
-        if (nowEpoch < schedule[0].startEpochMs) {
+      if (!currentItem) {
+        if (now < schedule[0].startEpochMs) {
           currentItem = schedule[0]
         } else {
           currentItem = schedule[schedule.length - 1]
         }
       }
 
-      if (currentItem) {
-        setCurrentPhaseKind(currentItem.kind)
-        setCurrentPhaseLabel(currentItem.label.toUpperCase())
+      const phaseEndsAt = currentItem.startEpochMs + currentItem.durationMs
+      const durationMs = Math.max(1, currentItem.durationMs)
+      const elapsed = Math.max(0, Math.min(durationMs, now - currentItem.startEpochMs))
+      const progress = elapsed / durationMs
 
-        const elapsedInPhase = Math.max(0, nowEpoch - currentItem.startEpochMs)
-        const progress = Math.min(1, elapsedInPhase / currentItem.durationMs)
-        setPhaseProgressPct(progress)
+      // 2. Derive mature phase word (INHALE / HOLD / EXHALE)
+      const rawKind = currentItem.kind
+      const normalizedKind =
+        rawKind === 'in' || rawKind === 'inhale'
+          ? 'in'
+          : rawKind === 'out' || rawKind === 'exhale'
+          ? 'out'
+          : 'hold'
 
-        // Seconds counter running 1, 2, 3... at natural 1-second cadence
-        const totalSecs = Math.max(1, Math.round(currentItem.durationMs / 1000))
-        const secTick = Math.min(totalSecs, Math.max(1, Math.floor(elapsedInPhase / 1000) + 1))
-        setPhaseTotalSeconds(totalSecs)
-        setPhaseCurrentSecond(secTick)
+      const word =
+        normalizedKind === 'in'
+          ? 'INHALE'
+          : normalizedKind === 'out'
+          ? 'EXHALE'
+          : 'HOLD'
 
-        // Smooth breathing orb scaling
-        // Inhale: 0.6 -> 1.0
-        // Hold (after Inhale): stays 1.0
-        // Exhale: 1.0 -> 0.6
-        // Hold (after Exhale): stays 0.6
-        const easeInOut = (t: number) => (t < 0.5 ? 2 * t * t : -1 + (4 - 2 * t) * t)
-        const easedProgress = easeInOut(progress)
-
-        if (currentItem.kind === 'in') {
-          setOrbScale(0.6 + 0.4 * easedProgress)
-        } else if (currentItem.kind === 'out') {
-          setOrbScale(1.0 - 0.4 * easedProgress)
-        } else {
-          const phases = activity.phases || []
-          const prevIdx = (currentItem.phaseIndex - 1 + phases.length) % phases.length
-          const prevKind = phases[prevIdx]?.kind
-          setOrbScale(prevKind === 'in' ? 1.0 : 0.6)
-        }
-      } else {
-        // Fallback default calculation
-        setOrbScale(0.75)
-        setCurrentPhaseLabel('REST')
-        const sec = Math.max(1, Math.ceil(remainingMs / 1000))
-        setPhaseCurrentSecond(sec)
-        setPhaseTotalSeconds(sec)
+      if (currentItem.index !== lastIndexRef.current) {
+        lastIndexRef.current = currentItem.index
+        setPhaseWord(word)
       }
 
-      animFrameRef.current = requestAnimationFrame(updateVisuals)
+      // 3. Smooth Hardware Updates on DOM (runs every frame at 60/120fps with zero React state overhead)
+
+      // A. Continuous Progress Ring (starts at 0, sweeps smoothly to 100% over the exact duration)
+      if (circleRef.current) {
+        const offset = circumference * (1 - progress)
+        circleRef.current.style.strokeDashoffset = `${offset.toFixed(2)}px`
+      }
+
+      // B. Smooth Organic Diaphragm Breathing Curve for Orb Scale
+      // Smooth sinusoidal easing: natural acceleration and deceleration
+      const ease = (1 - Math.cos(progress * Math.PI)) / 2
+
+      let startScale = 0.65
+      let targetScale = 1.0
+
+      if (normalizedKind === 'in') {
+        startScale = 0.65
+        targetScale = 1.0
+      } else if (normalizedKind === 'out') {
+        startScale = 1.0
+        targetScale = 0.65
+      } else {
+        // Hold phase: keep scale stable based on whether hold is full (after inhale) or empty (after exhale)
+        const phases = activity.phases || []
+        const prevIdx = (currentItem.phaseIndex - 1 + phases.length) % phases.length
+        const prevKind = phases[prevIdx]?.kind
+        const isFull = prevKind === 'in' || prevKind === 'inhale'
+        startScale = isFull ? 1.0 : 0.65
+        targetScale = startScale
+      }
+
+      const currentScale = startScale + (targetScale - startScale) * ease
+
+      if (orbRef.current) {
+        orbRef.current.style.transform = `scale(${currentScale.toFixed(4)})`
+        const glowSpread = 25 + 30 * ((currentScale - 0.65) / 0.35)
+        const glowAlpha = 0.12 + 0.14 * ((currentScale - 0.65) / 0.35)
+        orbRef.current.style.boxShadow = `0 0 ${glowSpread.toFixed(1)}px rgba(175, 221, 255, ${glowAlpha.toFixed(3)})`
+      }
+
+      // 4. Countdown Integer Seconds inside the Orb:
+      // Computes Math.ceil((phaseEndsAt - now) / 1000) and updates React state ONLY when the integer changes (1 Hz)
+      const remainingInPhaseSec = Math.max(1, Math.ceil((phaseEndsAt - now) / 1000))
+      if (remainingInPhaseSec !== lastSecRef.current) {
+        lastSecRef.current = remainingInPhaseSec
+        setDisplayedSec(remainingInPhaseSec)
+      }
+
+      animId = requestAnimationFrame(tick)
     }
 
-    animFrameRef.current = requestAnimationFrame(updateVisuals)
+    animId = requestAnimationFrame(tick)
 
     return () => {
-      if (animFrameRef.current) cancelAnimationFrame(animFrameRef.current)
+      if (animId) cancelAnimationFrame(animId)
     }
-  }, [breathingSchedule, activity.phases, remainingMs])
+  }, [activity.phases, circumference])
+
+  // Overall rest countdown in top bar
+  const remainingSec = Math.max(0, Math.ceil(remainingMs / 1000))
+  const mins = Math.floor(remainingSec / 60)
+  const secs = remainingSec % 60
+  const overallFormatted = `${String(mins).padStart(2, '0')}:${String(secs).padStart(2, '0')}`
 
   // Overall rest progress across the full rest session
   const restProgressPct = totalMs > 0 ? Math.min(100, Math.max(0, ((totalMs - remainingMs) / totalMs) * 100)) : 0
 
-  // SVG ring circumference (r=110, circumference ≈ 691.15)
-  const ringRadius = 110
-  const circumference = 2 * Math.PI * ringRadius
-  const strokeDashoffset = circumference * (1 - phaseProgressPct)
-
   return (
-    <div className="relative w-full h-full flex flex-col items-center justify-between select-none overflow-hidden font-mono bg-[#020407]">
-      {/* Top spacer */}
-      <div className="h-10 w-full" />
+    <div className="relative w-full h-full flex flex-col items-center justify-between select-none overflow-hidden font-mono bg-transparent z-10">
+      {/* Quiet Top Bar: Rest N of M + Activity Name + Pulsating Dot + Overall Rest Countdown */}
+      <header className="w-full flex items-center justify-between px-8 py-6 z-20">
+        <div className="flex items-center gap-3">
+          <span className="text-[11px] tracking-[0.14em] uppercase text-[var(--muted,#8a99a8)] font-mono">
+            Rest {snapshot.loopIndex + 1} of {snapshot.loopCount}
+          </span>
+          <span className="text-[11px] text-white/30 font-mono">·</span>
+          <span className="px-2 py-0.5 text-[9px] uppercase tracking-[0.14em] text-[var(--accent,#afddff)] border border-[var(--accent-line,rgba(175,221,255,0.35))] bg-[var(--accent-wash,rgba(175,221,255,0.08))] rounded-[3px]">
+            Breathing
+          </span>
+          <span className="text-[12px] text-[var(--text,#ffffff)] tracking-[0.08em] font-medium font-mono">
+            {activity.name}
+          </span>
+        </div>
+        <div className="flex items-center gap-3 font-mono">
+          <span className="w-2 h-2 rounded-full bg-[var(--accent,#afddff)] shadow-[0_0_8px_var(--accent,#afddff)] animate-pulse" />
+          <span className="text-[12px] text-[var(--text,#ffffff)] tracking-[0.1em] tabular-nums">
+            {overallFormatted}
+          </span>
+        </div>
+      </header>
 
-      {/* Clean, Serene Center Breathing Circle */}
-      <div className="relative flex flex-col items-center justify-center my-auto">
-        <div className="relative w-[260px] h-[260px] flex items-center justify-center">
-          {/* Phase Progress Circle SVG */}
-          <svg className="absolute inset-0 w-[260px] h-[260px] -rotate-90 pointer-events-none" viewBox="0 0 260 260">
+      {/* Main Breathing Centerpiece */}
+      <div className="relative flex flex-col items-center justify-center my-auto z-10 max-w-2xl px-4">
+        <div className="relative w-[280px] h-[280px] flex items-center justify-center">
+          {/* Phase Progress Ring SVG */}
+          <svg className="absolute inset-0 w-[280px] h-[280px] -rotate-90 pointer-events-none" viewBox="0 0 280 280">
             {/* Background Track */}
             <circle
-              cx="130"
-              cy="130"
+              cx="140"
+              cy="140"
               r={ringRadius}
               fill="none"
               stroke="rgba(175, 221, 255, 0.08)"
               strokeWidth="2"
             />
-            {/* Active Accent Progress */}
+            {/* Dynamic Sweep Arc */}
             <circle
-              cx="130"
-              cy="130"
+              ref={circleRef}
+              cx="140"
+              cy="140"
               r={ringRadius}
               fill="none"
               stroke="var(--accent, #afddff)"
               strokeWidth="2.5"
               strokeDasharray={circumference}
-              strokeDashoffset={strokeDashoffset}
+              strokeDashoffset={circumference}
               strokeLinecap="round"
-              className="transition-[stroke-dashoffset] duration-100 ease-linear"
             />
           </svg>
 
-          {/* Clean, Soothing Light Orb */}
+          {/* Luminous Breath Core (Hardware Accelerated Smooth Scale) */}
           <div
-            className="w-[180px] h-[180px] rounded-full flex items-center justify-center pointer-events-none transition-transform duration-100 ease-linear"
+            ref={orbRef}
+            className="w-[190px] h-[190px] rounded-full flex items-center justify-center pointer-events-none will-change-transform"
             style={{
-              transform: `scale(${orbScale})`,
-              background: 'radial-gradient(circle, rgba(175, 221, 255, 0.16) 0%, rgba(175, 221, 255, 0.04) 65%, transparent 100%)',
-              border: '1px solid rgba(175, 221, 255, 0.22)',
-              boxShadow: '0 0 35px rgba(175, 221, 255, 0.12)'
+              transform: 'scale(0.65)',
+              background: 'radial-gradient(circle, rgba(175, 221, 255, 0.18) 0%, rgba(175, 221, 255, 0.04) 65%, transparent 100%)',
+              border: '1px solid rgba(175, 221, 255, 0.25)',
+              boxShadow: '0 0 35px rgba(175, 221, 255, 0.14)'
             }}
           >
-            {/* Seconds Counter: counting up 1, 2, 3... */}
-            <span className="text-[44px] font-light text-[var(--text, #ffffff)] tracking-[0.06em] tabular-nums select-none drop-shadow-[0_0_10px_rgba(175,221,255,0.4)]">
-              {phaseCurrentSecond}
+            {/* Seconds Counter inside Orb */}
+            <span className="text-[48px] font-light text-[var(--text, #ffffff)] tracking-[0.04em] tabular-nums select-none drop-shadow-[0_0_12px_rgba(175,221,255,0.45)]">
+              {displayedSec}
             </span>
           </div>
         </div>
 
-        {/* Phase Name & Instruction Below Orb */}
+        {/* Mature, Elegant Phase Word (INHALE / HOLD / EXHALE) */}
         <div className="mt-8 flex flex-col items-center justify-center text-center">
           <span
-            key={currentPhaseLabel}
-            className="text-[14px] font-medium tracking-[0.2em] uppercase text-[var(--text, #ffffff)]"
+            key={phaseWord}
+            className="text-[40px] md:text-[46px] font-medium tracking-[0.2em] uppercase text-white transition-opacity duration-300"
+            style={{
+              fontFamily: 'var(--font-display, inherit)',
+              lineHeight: 1.1,
+              letterSpacing: '0.22em'
+            }}
           >
-            {currentPhaseLabel} · {phaseTotalSeconds}s
+            {phaseWord}
           </span>
-          <span className="text-[12px] text-[var(--muted, #8a99a8)] tracking-[0.04em] mt-1.5 font-normal">
-            {currentPhaseKind === 'in'
-              ? 'Inhale slowly through your nose'
-              : currentPhaseKind === 'out'
-              ? 'Exhale gently through your mouth'
-              : 'Hold your breath gently'}
-          </span>
+        </div>
+
+        {/* Activity Name, Tagline & Detailed Notes/Instructions directly below Inhale & Exhale */}
+        <div className="mt-5 flex flex-col items-center text-center max-w-xl px-2 animate-fade-in">
+          <div className="text-[12px] uppercase tracking-[0.16em] text-[var(--accent,#afddff)] font-medium mb-1 font-mono">
+            {activity.name}
+          </div>
+          {activity.tagline && (
+            <div className="text-[11px] text-white/70 tracking-[0.04em] mb-2 font-mono">
+              {activity.tagline}
+            </div>
+          )}
+          {(activity.notes || activity.note) && (
+            <div className="max-h-[110px] overflow-y-auto px-4 py-2.5 rounded-lg bg-[rgba(255,255,255,0.03)] border border-[rgba(175,221,255,0.18)] text-[11px] text-white/70 leading-relaxed font-mono text-center">
+              {activity.notes || activity.note}
+            </div>
+          )}
         </div>
       </div>
 
-      {/* Bottom Area: Centered Escape Hint + Rest Progress */}
-      <div className="w-full flex flex-col items-center z-20 pb-0">
-        <div className="w-full flex items-center justify-center px-8 py-4">
-          <span className="text-[11px] text-[var(--muted, #8a99a8)] tracking-[0.08em] select-none font-mono">
-            Press Escape to escape.
-          </span>
+      {/* Bottom Area: Press ESC to escape & Hairline Rest Progress at Bottom Edge */}
+      <footer className="w-full flex flex-col z-20">
+        <div className="w-full flex items-center justify-between px-8 py-3.5">
+          <div className="flex items-center gap-4">
+            <span className="text-[11px] text-[var(--muted,#8a99a8)] tracking-[0.08em] select-none font-mono">
+              Press ESC to escape.
+            </span>
+            {canSnooze && !snapshot.snoozeUsed && onSnooze && (
+              <button
+                type="button"
+                onClick={onSnooze}
+                className="px-3 py-1 text-[10px] uppercase tracking-[0.12em] text-[var(--muted,#8a99a8)] hover:text-white border border-[var(--hair,rgba(255,255,255,0.08))] hover:border-[var(--faint,rgba(255,255,255,0.28))] bg-[rgba(255,255,255,0.03)] hover:bg-[rgba(255,255,255,0.08)] rounded-[4px] transition-all cursor-pointer font-mono"
+              >
+                Snooze 2m
+              </button>
+            )}
+          </div>
         </div>
 
-        {/* 2px Hairline Rest Progress at Bottom Edge */}
         <div className="w-full h-[2px] bg-[rgba(255,255,255,0.08)] overflow-hidden">
           <div
-            className="h-full bg-[var(--accent, #afddff)] transition-all duration-300 ease-out shadow-[0_0_8px_var(--accent, #afddff)]"
+            className="h-full bg-[var(--accent,#afddff)] transition-all duration-300 ease-out shadow-[0_0_8px_var(--accent,#afddff)]"
             style={{ width: `${restProgressPct}%` }}
           />
         </div>
-      </div>
+      </footer>
     </div>
   )
 }

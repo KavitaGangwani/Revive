@@ -34,3 +34,13 @@ desktop.ini
 
 # Repomix & temporary exports
 repomix-output.md
+
+.gemini/
+.agent/
+.agents/
+.antigravity/
+brain/
+repomix*.md
+/index.html
+/landing.html
+refer/

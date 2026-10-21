@@ -44,7 +44,7 @@ export const ActivitiesScreen: React.FC<ActivitiesScreenProps> = ({
 
   // Split into built-in and custom groups
   const builtInActivities = useMemo(() => {
-    const list = allActivities.filter((a) => Boolean(a.builtIn || a.isBuiltIn))
+    const list = allActivities.filter((a) => Boolean(a.builtin || a.builtIn || a.isBuiltIn))
     return [...list].sort((a, b) => {
       const aIsDef = a.id === defaultId ? 1 : 0
       const bIsDef = b.id === defaultId ? 1 : 0
@@ -53,7 +53,7 @@ export const ActivitiesScreen: React.FC<ActivitiesScreenProps> = ({
   }, [allActivities, defaultId])
 
   const customActivities = useMemo(() => {
-    const list = allActivities.filter((a) => !a.builtIn && !a.isBuiltIn)
+    const list = allActivities.filter((a) => !a.builtin && !a.builtIn && !a.isBuiltIn)
     return [...list].sort((a, b) => {
       const aIsDef = a.id === defaultId ? 1 : 0
       const bIsDef = b.id === defaultId ? 1 : 0

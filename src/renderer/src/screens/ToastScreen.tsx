@@ -1,5 +1,6 @@
-import React, { useEffect, useState } from 'react'
-import { soundRegistry } from '../audio/soundRegistry'
+import React, { useEffect, useState, useRef } from 'react'
+import { REST_WARNING_SECONDS } from '../../../shared/types'
+import chimeSoundUrl from '../../../../assets/sounds/notification-chime.wav'
 
 export interface ToastScreenProps {
   type: string;
@@ -18,15 +19,72 @@ export const ToastScreen: React.FC<ToastScreenProps> = ({
 }) => {
   const [draining, setDraining] = useState(false)
   const [isExiting, setIsExiting] = useState(false)
+  const [note, setNote] = useState('')
+  const [isFocused, setIsFocused] = useState(false)
+  const [showSavedTick, setShowSavedTick] = useState(false)
+
+  const queryParams = new URLSearchParams(window.location.search)
+  const canSnoozeParam = queryParams.get('canSnooze') !== 'false'
+  const [snoozeUsed, setSnoozeUsed] = useState(false)
+
+  const cardRef = useRef<HTMLDivElement | null>(null)
+  const inputRef = useRef<HTMLInputElement | null>(null)
+  const audioRef = useRef<HTMLAudioElement | null>(null)
+  const savedTimerRef = useRef<any>(null)
 
   useEffect(() => {
-    // Play chime sound whenever rest warning notification arrives (1 minute before rest)
-    if (type === 'restWarning') {
-      try {
-        soundRegistry.playWarningChime()
-      } catch (err) {
-        console.warn('[ToastScreen] Failed to play rest warning chime:', err)
+    document.body.style.background = 'transparent'
+  }, [])
+
+  // Dynamic measuring and window resize
+  useEffect(() => {
+    if (!cardRef.current) return
+    const ro = new ResizeObserver((entries) => {
+      for (const entry of entries) {
+        const height = Math.ceil(
+          entry.borderBoxSize?.[0]?.blockSize ?? entry.target.getBoundingClientRect().height
+        )
+        if (height > 0) {
+          window.toastApi?.resize?.(toastId, 380, height)
+        }
       }
+    })
+    ro.observe(cardRef.current)
+    return () => ro.disconnect()
+  }, [toastId])
+
+  useEffect(() => {
+    // Play chime sound whenever rest warning notification arrives
+    if (type === 'restWarning') {
+      const playChime = async () => {
+        try {
+          const settings = await window.settingsApi?.getSettings()
+          const enabled = settings?.sound?.notificationSounds ?? true
+          if (enabled && audioRef.current) {
+            audioRef.current.currentTime = 0
+            audioRef.current.play().catch((err) => {
+              console.warn('[ToastScreen] HTML5 audio play failed:', err)
+            })
+          }
+        } catch (err) {
+          console.warn('[ToastScreen] Failed to read settings or play chime:', err)
+        }
+      }
+      playChime()
+    }
+  }, [type])
+
+  const [isSubmitted, setIsSubmitted] = useState(false)
+
+  useEffect(() => {
+    // If the input has focus or text (and has not been submitted), do not auto-dismiss!
+    if (type === 'restWarning' && !isSubmitted && (isFocused || note.length > 0)) {
+      setDraining(false)
+      setIsExiting(false)
+      if (window.toastApi?.keepOpen) {
+        window.toastApi.keepOpen(toastId)
+      }
+      return
     }
 
     // Start progress bar drain immediately after mount
@@ -43,7 +101,44 @@ export const ToastScreen: React.FC<ToastScreenProps> = ({
       clearTimeout(timer)
       clearTimeout(exitTimer)
     }
-  }, [durationMs])
+  }, [durationMs, type, isFocused, note, toastId, isSubmitted])
+
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const val = e.target.value.slice(0, 200)
+    setNote(val)
+    if (window.toastApi?.keepOpen) {
+      window.toastApi.keepOpen(toastId)
+    }
+    const api = window.revive || window.still
+    api?.session?.setLeftOffNote?.(val)
+  }
+
+  const handleInputFocus = () => {
+    setIsFocused(true)
+    if (window.toastApi?.keepOpen) {
+      window.toastApi.keepOpen(toastId)
+    }
+  }
+
+  const handleInputBlur = () => {
+    setIsFocused(false)
+  }
+
+  const handleInputKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === 'Enter') {
+      e.preventDefault()
+      const api = window.revive || window.still
+      api?.session?.setLeftOffNote?.(note)
+      inputRef.current?.blur()
+      setIsFocused(false)
+      setIsSubmitted(true)
+      setShowSavedTick(true)
+      if (savedTimerRef.current) clearTimeout(savedTimerRef.current)
+      savedTimerRef.current = setTimeout(() => {
+        handleDismiss()
+      }, 350)
+    }
+  }
 
   const handleDismiss = () => {
     setIsExiting(true)
@@ -57,6 +152,7 @@ export const ToastScreen: React.FC<ToastScreenProps> = ({
   }
 
   const handleSnooze = async () => {
+    setSnoozeUsed(true)
     setIsExiting(true)
     try {
       if (window.toastApi?.snooze) {
@@ -103,8 +199,8 @@ export const ToastScreen: React.FC<ToastScreenProps> = ({
       </svg>
     )
   } else if (type === 'restWarning') {
-    defaultLabel = 'Rest in 60s'
-    defaultText = 'In 60 seconds, rest is upcoming. Wrap up or snooze.'
+    defaultLabel = `Rest in ${REST_WARNING_SECONDS} seconds`
+    defaultText = 'Find a good stopping point. Revive will take over the screen soon.'
     iconSvg = (
       <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" strokeWidth="1.8">
         <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z" />
@@ -117,19 +213,23 @@ export const ToastScreen: React.FC<ToastScreenProps> = ({
 
   return (
     <div
-      className={`toast-card ${isExiting ? 'toast-exiting' : 'toast-entering'}`}
+      ref={cardRef}
+      className={`toast-card ${type === 'restWarning' ? 'toast-warning-card' : ''} ${
+        isExiting ? 'toast-exiting' : 'toast-entering'
+      }`}
       role="alert"
       aria-live="polite"
     >
+      {/* HTML5 audio element for notification chime */}
+      <audio ref={audioRef} src={chimeSoundUrl} preload="auto" />
+
       {/* Luminous Top Edge */}
       <div className="toast-luminous-edge" />
 
       {/* Main Content Row */}
       <div className="toast-inner">
         {/* Ringed Circle Icon */}
-        <div className="toast-icon-ring">
-          {iconSvg}
-        </div>
+        <div className="toast-icon-ring">{iconSvg}</div>
 
         {/* Text Block */}
         <div className="toast-body">
@@ -138,7 +238,7 @@ export const ToastScreen: React.FC<ToastScreenProps> = ({
         </div>
 
         {/* Snooze Button for Rest Warning */}
-        {type === 'restWarning' && (
+        {type === 'restWarning' && canSnoozeParam && !snoozeUsed && (
           <button
             type="button"
             className="toast-snooze-btn"
@@ -159,6 +259,33 @@ export const ToastScreen: React.FC<ToastScreenProps> = ({
           ✕
         </button>
       </div>
+
+      {/* Optional single-line input for rest warning */}
+      {type === 'restWarning' && (
+        <div className="toast-note-container">
+          <input
+            ref={inputRef}
+            type="text"
+            className="toast-note-input"
+            placeholder="Where are you leaving off?"
+            maxLength={200}
+            value={note}
+            onChange={handleInputChange}
+            onFocus={handleInputFocus}
+            onBlur={handleInputBlur}
+            onKeyDown={handleInputKeyDown}
+            aria-label="Where are you leaving off?"
+          />
+          {showSavedTick && (
+            <div className="toast-saved-badge">
+              <svg viewBox="0 0 24 24" width="11" height="11" fill="none" stroke="currentColor" strokeWidth="2.5">
+                <path d="M20 6L9 17l-5-5" />
+              </svg>
+              <span>Saved</span>
+            </div>
+          )}
+        </div>
+      )}
 
       {/* 1px Draining Progress Bar */}
       <div className="toast-progress-track">

@@ -3,6 +3,9 @@
  * Shared between Electron Main Process, Preload Scripts, and Renderer Process.
  */
 
+export const REST_WARNING_SECONDS = 90;
+export const TRANSITION_SECONDS = 5;
+
 export interface AppSettings {
   nudges: {
     eyeBreak: { enabled: boolean; intervalMinutes: number }; // 5-120, step 5
@@ -19,6 +22,7 @@ export interface AppSettings {
   sound: {
     chimeAtRestStart: boolean;
     chimeAtRestEnd: boolean;
+    notificationSounds?: boolean; // Short notification chime on reminder/warning toasts (default: true)
   };
   autostart?: boolean; // Launch on Windows startup
   miniFocusWindow?: boolean; // Show mini floating timer during focus
@@ -28,15 +32,22 @@ export type DeepPartial<T> = {
   [P in keyof T]?: T[P] extends object ? DeepPartial<T[P]> : T[P];
 };
 
-export type ActivityType = 'breathing' | 'routine'; // absent = none
+export type ActivityType = 'breathing' | 'routine' | 'none'; // absent or 'none'
 
-export type PhaseKind = 'in' | 'hold' | 'out';
+export type PhaseKind = 'in' | 'hold' | 'out' | 'inhale' | 'exhale';
 
 export interface BreathingPhase {
-  label: string;
+  label?: string;
   seconds: number;
   kind?: PhaseKind;
   soundId?: string;
+}
+
+export interface RoutineStep {
+  name?: string;
+  title?: string;
+  body?: string;
+  seconds?: number;
 }
 
 export interface SoundPack {
@@ -62,12 +73,16 @@ export interface BreathingScheduleItem {
 export interface Activity {
   id: string;
   name: string; // 1-40 chars
-  builtIn: boolean;
+  builtIn?: boolean;
+  builtin?: boolean;
   note?: string; // max 120
+  notes?: string;
+  tagline?: string;
+  recommendedFor?: string;
   type?: ActivityType;
-  phases?: { label: string; seconds: number; kind?: PhaseKind }[]; // breathing: 1-8 phases, label 1-24 chars, seconds 1-30
-  steps?: { name: string; seconds: number }[]; // routine: 1-12 steps, name 1-24 chars, seconds 5-300
-  media?: { kind: 'youtube' | 'spotify'; url: string };
+  phases?: BreathingPhase[];
+  steps?: RoutineStep[];
+  media?: { kind: 'youtube' | 'spotify'; url: string; autoplay?: boolean; startMuted?: boolean };
   // Backwards compatibility helpers
   isBuiltIn?: boolean;
   title?: string;
@@ -90,6 +105,7 @@ export interface LibrarySettings {
 export interface LibraryPayload {
   activities: Activity[];
   defaultId?: string;
+  defaults?: LibrarySettings['defaults'];
 }
 
 // Backwards compatibility alias
@@ -101,6 +117,8 @@ export type SessionPhase =
   | 'transition-to-rest'
   | 'rest'
   | 'transition-to-focus'
+  | 'closing'
+  | 'choose-activity'
   | 'session-complete';
 
 export interface SessionConfig {
@@ -121,6 +139,8 @@ export interface SessionSnapshot {
   breathingSchedule?: BreathingScheduleItem[];
   snoozeUsed?: boolean;
   isSnoozed?: boolean;
+  leftOffNote?: string | null;
+  isClosing?: boolean;
 }
 
 export interface PersistedSessionState {
@@ -129,6 +149,13 @@ export interface PersistedSessionState {
   phase: SessionPhase;
   phaseEndsAt: number;
   snoozeUsed?: boolean;
+  savedAt?: number;
+  leftOffNote?: string | null;
+}
+
+export interface DraftConfigState {
+  config: SessionConfig;
+  savedSlotChoices: (string | null)[];
 }
 
 export interface UserPrefs {
@@ -166,6 +193,7 @@ export interface StoreSchema {
   library: LibrarySettings;
   session: SessionResume;
   persistedSession: PersistedSessionState | null;
+  draftConfig: (SessionConfig & { savedSlotChoices?: (string | null)[] }) | null;
   prefs: UserPrefs;
   lastBootTime: number;
 }
@@ -227,6 +255,8 @@ export interface MiniWindowAPI {
 export interface ToastAPI {
   dismiss: (id: string) => void;
   snooze?: (minutes?: number) => Promise<SessionSnapshot>;
+  keepOpen?: (id: string) => void;
+  resize?: (id: string, width: number, height: number) => void;
 }
 
 export interface ReviveAPI {
@@ -240,6 +270,14 @@ export interface ReviveAPI {
     resumeFocus: () => Promise<SessionSnapshot>;
     onTick: (callback: (snapshot: SessionSnapshot) => void) => () => void;
     setRestActivity: (index: number, id: string | null) => Promise<SessionConfig>;
+    getDraftConfig: () => Promise<DraftConfigState>;
+    setDraftConfig: (draft: SessionConfig & { savedSlotChoices?: (string | null)[] }) => Promise<DraftConfigState>;
+    checkPendingResume: () => Promise<PersistedSessionState | null>;
+    confirmResume: (confirm: boolean) => Promise<boolean>;
+    devResetToIdle: () => Promise<void>;
+    setLeftOffNote: (note: string) => Promise<SessionSnapshot>;
+    backToWork: () => Promise<SessionSnapshot>;
+    beginRestNow?: () => Promise<SessionSnapshot>;
   };
   library: {
     getActivities: () => Promise<Activity[]>;
@@ -285,7 +323,17 @@ export const IPC_CHANNELS = {
   SESSION_SNOOZE: 'session:snooze',
   SESSION_RESUME_FOCUS: 'session:resume-focus',
   SESSION_SET_REST_ACTIVITY: 'session:set-rest-activity',
+  SESSION_GET_DRAFT_CONFIG: 'session:get-draft-config',
+  SESSION_SET_DRAFT_CONFIG: 'session:set-draft-config',
+  SESSION_CHECK_PENDING_RESUME: 'session:check-pending-resume',
+  SESSION_CONFIRM_RESUME: 'session:confirm-resume',
   SESSION_TICK: 'session:tick',
+  SESSION_SET_LEFT_OFF_NOTE: 'session:set-left-off-note',
+  SESSION_BACK_TO_WORK: 'session:back-to-work',
+  SESSION_BEGIN_REST_NOW: 'session:begin-rest-now',
+  DEV_RESET_TO_IDLE: 'dev:reset-to-idle',
+  TOAST_KEEP_OPEN: 'toast:keep-open',
+  TOAST_RESIZE: 'toast:resize',
   // Overlay IPC
   OVERLAY_EXIT: 'overlay:exit',
   OVERLAY_EXIT_ANIMATE: 'overlay:exit-animate',

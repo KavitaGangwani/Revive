@@ -7,9 +7,6 @@
   "license": "MIT",
   "scripts": {
     "dev": "electron-vite dev",
-    "dev:splash": "node scripts/preview-splash.cjs",
-    "build:landing": "node scripts/build-landing-page.cjs",
-    "preview:landing": "node scripts/serve-landing.cjs",
     "build": "npm run typecheck && electron-vite build",
     "typecheck": "tsc --noEmit -p tsconfig.node.json && tsc --noEmit -p tsconfig.web.json",
     "test": "vitest run",

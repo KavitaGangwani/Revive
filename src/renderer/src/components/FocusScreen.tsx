@@ -1,30 +1,33 @@
 import React from 'react'
 import { Activity, SessionConfig, SessionSnapshot } from '../../../shared/types'
 import { SessionComplete } from './SessionComplete'
+import { useSessionConfig } from '../context/SessionConfigContext'
 
 interface FocusScreenProps {
-  config: SessionConfig;
+  config?: SessionConfig;
   snapshot: SessionSnapshot;
   library: Activity[];
-  onChangeConfig: (newConfig: SessionConfig) => void;
+  onChangeConfig?: (newConfig: SessionConfig) => void;
   onPickActivityForRest: (index: number) => void;
-  onStartSession: () => void;
+  onStartSession?: () => void;
   onSkipToRest: () => void;
   onAnotherOne: () => void;
   onDoneForNow: () => void;
 }
 
 export const FocusScreen: React.FC<FocusScreenProps> = ({
-  config,
+  config: propConfig,
   snapshot,
   library,
-  onChangeConfig,
   onPickActivityForRest,
-  onStartSession,
+  onStartSession: propOnStartSession,
   onSkipToRest,
   onAnotherOne,
   onDoneForNow
 }) => {
+  const sessionCtx = useSessionConfig()
+  const config = propConfig || sessionCtx.config
+  const onStartSession = propOnStartSession || sessionCtx.startSession
   // Format MM:SS for countdown timer
   const formatRemaining = (ms: number): string => {
     const totalSeconds = Math.max(0, Math.ceil(ms / 1000))
@@ -201,24 +204,13 @@ export const FocusScreen: React.FC<FocusScreenProps> = ({
   // 3. Idle Setup View
   // Counter stepping helpers
   const handleStep = (key: 'focusMinutes' | 'restMinutes' | 'loopCount', delta: number) => {
-    let nextFocus = config.focusMinutes
-    let nextRest = config.restMinutes
-    let nextLoops = config.loopCount
-
     if (key === 'focusMinutes') {
-      nextFocus = Math.min(180, Math.max(5, config.focusMinutes + delta * 5))
+      sessionCtx.stepFocusMinutes(delta)
     } else if (key === 'restMinutes') {
-      nextRest = Math.min(60, Math.max(1, config.restMinutes + delta))
+      sessionCtx.stepRestMinutes(delta)
     } else if (key === 'loopCount') {
-      nextLoops = Math.min(8, Math.max(1, config.loopCount + delta))
+      sessionCtx.stepLoopCount(delta)
     }
-
-    onChangeConfig({
-      ...config,
-      focusMinutes: nextFocus,
-      restMinutes: nextRest,
-      loopCount: nextLoops
-    })
   }
 
   // Calculate note summary

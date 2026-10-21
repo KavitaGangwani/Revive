@@ -7,6 +7,7 @@ export interface OverlayManagerOptions {
   getMainWindow: () => BrowserWindow | null;
   onSnooze: () => void;
   onResumeFocus: () => void;
+  onResetToIdle?: () => void;
 }
 
 export class OverlayManager {
@@ -14,6 +15,7 @@ export class OverlayManager {
   private getSettings: () => AppSettings
   private getMainWindow: () => BrowserWindow | null
   private onResumeFocus: () => void
+  private onResetToIdle?: () => void
   private isOverlayActive: boolean = false
   private closeTimeout: any = null
   private currentSnapshot: SessionSnapshot | null = null
@@ -22,6 +24,7 @@ export class OverlayManager {
     this.getSettings = options.getSettings
     this.getMainWindow = options.getMainWindow
     this.onResumeFocus = options.onResumeFocus
+    this.onResetToIdle = options.onResetToIdle
   }
 
   public getIsOverlayActive(): boolean {
@@ -33,8 +36,10 @@ export class OverlayManager {
     const shouldShow =
       (snapshot.phase === 'transition-to-rest' ||
         snapshot.phase === 'rest' ||
+        snapshot.phase === 'transition-to-focus' ||
         snapshot.phase === 'session-complete') &&
-      !snapshot.isSnoozed
+      !snapshot.isSnoozed &&
+      !snapshot.isClosing
 
     if (shouldShow && !this.isOverlayActive) {
       this.openOverlays(snapshot)
@@ -114,6 +119,18 @@ export class OverlayManager {
       }
     })
 
+    win.webContents.on('did-attach-webview', (_event, webContents) => {
+      try {
+        (webContents as any).setBackgroundColor?.('#000000')
+      } catch {}
+      webContents.on('did-fail-load', (_event, errorCode, errorDescription, validatedURL) => {
+        console.error(`[main console] [overlay webview did-fail-load] code=${errorCode} desc=${errorDescription} url=${validatedURL}`)
+      })
+      webContents.on('console-message', (_event, level, message, line, sourceId) => {
+        console.log(`[main console] [overlay webview console-message] [level ${level}] (${sourceId}:${line}) ${message}`)
+      })
+    })
+
     win.setAlwaysOnTop(true, 'screen-saver')
 
     const query = new URLSearchParams({
@@ -141,10 +158,19 @@ export class OverlayManager {
     })
 
     win.webContents.on('before-input-event', (event, input) => {
-      if (input.key === 'Escape' && input.type === 'keyDown') {
-        event.preventDefault()
-        this.closeOverlays(true)
-        this.onResumeFocus()
+      if (input.type === 'keyDown') {
+        if (!app.isPackaged && input.control && input.shift && input.key.toLowerCase() === 'q') {
+          event.preventDefault()
+          this.closeOverlays(true)
+          if (this.onResetToIdle) {
+            this.onResetToIdle()
+          }
+          return
+        }
+        if (input.key === 'Escape') {
+          event.preventDefault()
+          this.onResumeFocus()
+        }
       }
     })
 
@@ -190,6 +216,18 @@ export class OverlayManager {
       }
     })
 
+    win.webContents.on('did-attach-webview', (_event, webContents) => {
+      try {
+        (webContents as any).setBackgroundColor?.('#000000')
+      } catch {}
+      webContents.on('did-fail-load', (_event, errorCode, errorDescription, validatedURL) => {
+        console.error(`[main console] [overlay webview did-fail-load] code=${errorCode} desc=${errorDescription} url=${validatedURL}`)
+      })
+      webContents.on('console-message', (_event, level, message, line, sourceId) => {
+        console.log(`[main console] [overlay webview console-message] [level ${level}] (${sourceId}:${line}) ${message}`)
+      })
+    })
+
     win.setAlwaysOnTop(true, 'screen-saver')
 
     const mode = isPrimary ? 'primary' : 'backdrop'
@@ -220,10 +258,19 @@ export class OverlayManager {
     })
 
     win.webContents.on('before-input-event', (event, input) => {
-      if (input.key === 'Escape' && input.type === 'keyDown') {
-        event.preventDefault()
-        this.closeOverlays(true)
-        this.onResumeFocus()
+      if (input.type === 'keyDown') {
+        if (!app.isPackaged && input.control && input.shift && input.key.toLowerCase() === 'q') {
+          event.preventDefault()
+          this.closeOverlays(true)
+          if (this.onResetToIdle) {
+            this.onResetToIdle()
+          }
+          return
+        }
+        if (input.key === 'Escape') {
+          event.preventDefault()
+          this.onResumeFocus()
+        }
       }
     })
 
@@ -288,6 +335,44 @@ export class OverlayManager {
     }
   }
 
+  public async closeOverlaysAsync(): Promise<void> {
+    if (!this.isOverlayActive && this.overlayWindows.length === 0) {
+      return
+    }
+    return new Promise((resolve) => {
+      this.isOverlayActive = false
+      const windowsToClose = [...this.overlayWindows]
+
+      for (const item of windowsToClose) {
+        if (!item.window.isDestroyed()) {
+          if (this.currentSnapshot) {
+            item.window.webContents.send(IPC_CHANNELS.SESSION_TICK, {
+              ...this.currentSnapshot,
+              isClosing: true
+            })
+          }
+          item.window.webContents.send(IPC_CHANNELS.OVERLAY_EXIT_ANIMATE)
+        }
+      }
+
+      if (this.closeTimeout) {
+        clearTimeout(this.closeTimeout)
+        this.closeTimeout = null
+      }
+
+      this.closeTimeout = setTimeout(() => {
+        for (const item of windowsToClose) {
+          if (!item.window.isDestroyed()) {
+            item.window.close()
+          }
+        }
+        this.overlayWindows = []
+        this.restoreMainWindow()
+        resolve()
+      }, 1100)
+    })
+  }
+
   public closeOverlays(immediate: boolean = false): void {
     if (!this.isOverlayActive && this.overlayWindows.length === 0) return
     this.isOverlayActive = false
@@ -305,9 +390,15 @@ export class OverlayManager {
       return
     }
 
-    // Broadcast exit animation to overlays (1.1s expo-in-out exit)
+    // Broadcast exit animation and explicit closing state to overlays (1.1s expo-in-out exit)
     for (const item of windowsToClose) {
       if (!item.window.isDestroyed()) {
+        if (this.currentSnapshot) {
+          item.window.webContents.send(IPC_CHANNELS.SESSION_TICK, {
+            ...this.currentSnapshot,
+            isClosing: true
+          })
+        }
         item.window.webContents.send(IPC_CHANNELS.OVERLAY_EXIT_ANIMATE)
       }
     }

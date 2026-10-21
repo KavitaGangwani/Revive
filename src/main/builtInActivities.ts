@@ -1,7 +1,5 @@
-import { Activity } from '../shared/types'
+import { BUILTIN_ACTIVITIES } from '../shared/builtinActivities'
 
-/**
- * Built-in activities for Revive.
- * Kept clean for the user to define and customize their own activities.
- */
-export const builtInActivities: Activity[] = []
+export { BUILTIN_ACTIVITIES } from '../shared/builtinActivities'
+export const builtInActivities = BUILTIN_ACTIVITIES
+export * from '../shared/builtinActivities'

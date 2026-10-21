@@ -293,4 +293,38 @@ describe('Activities v2 (Revive) Data Model & Validation', () => {
     expect(chill?.media?.kind).toBe('spotify')
     expect(chill?.media?.url).toBe('https://open.spotify.com/track/123')
   })
+
+  it('migrates legacy breathing activity phases to Inhale, Hold, Exhale types', () => {
+    const rawBreathing = {
+      custom: [
+        {
+          id: 'custom-breath-1',
+          name: 'My Custom Breathing',
+          type: 'breathing',
+          phases: [
+            { label: 'Breathe In Deeply', seconds: 4 },
+            { label: 'Hold breath at top', seconds: 4 },
+            { label: 'Exhale slowly', seconds: 4 },
+            { label: 'empty hold', seconds: 4 },
+            { label: 'Breath in', seconds: 5 },
+            { label: 'Breath out', seconds: 5 }
+          ]
+        }
+      ]
+    }
+
+    const { library: migrated, changed } = migrateStoredLibrary(rawBreathing)
+    expect(changed).toBe(true)
+    const breathAct = migrated.custom.find((a: Activity) => a.id === 'custom-breath-1')
+    expect(breathAct).toBeDefined()
+    expect(breathAct?.phases).toEqual([
+      { label: 'Inhale', seconds: 4, kind: 'in' },
+      { label: 'Hold', seconds: 4, kind: 'hold' },
+      { label: 'Exhale', seconds: 4, kind: 'out' },
+      { label: 'Hold', seconds: 4, kind: 'hold' },
+      { label: 'Inhale', seconds: 5, kind: 'in' },
+      { label: 'Exhale', seconds: 5, kind: 'out' }
+    ])
+  })
 })
+

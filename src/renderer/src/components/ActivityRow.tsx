@@ -52,7 +52,7 @@ export const ActivityRow: React.FC<ActivityRowProps> = ({
   onEdit,
   onDelete
 }) => {
-  const isBuiltIn = Boolean(activity.builtIn || activity.isBuiltIn)
+  const isBuiltIn = Boolean(activity.builtIn || activity.isBuiltIn || activity.builtin)
   const meta = formatActivityMeta(activity)
   const iconName = activity.type === 'breathing' ? 'breathing' : activity.type === 'routine' ? 'routine' : 'note'
 
@@ -137,7 +137,7 @@ export const ActivityRow: React.FC<ActivityRowProps> = ({
             {meta}
           </span>
         ) : null}
-        {activity.note ? (
+        {activity.tagline || activity.notes || activity.note ? (
           <span
             className="note-line"
             style={{
@@ -150,7 +150,7 @@ export const ActivityRow: React.FC<ActivityRowProps> = ({
               textOverflow: 'ellipsis'
             }}
           >
-            “{activity.note}”
+            {activity.tagline || activity.notes || activity.note}
           </span>
         ) : null}
       </div>

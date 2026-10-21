@@ -1,9 +1,10 @@
-import React, { useEffect, useState, useRef, useCallback } from 'react'
+import React, { useEffect, useState } from 'react'
 import {
   Activity,
   SessionConfig,
   SessionSnapshot,
-  LibraryPayload
+  LibraryPayload,
+  PersistedSessionState
 } from '../../shared/types'
 import { Stars } from './components/Stars'
 import { Sidebar, AppRoute } from './components/Sidebar'
@@ -11,15 +12,17 @@ import { FocusScreen } from './components/FocusScreen'
 import { ActivitiesScreen } from './components/ActivitiesScreen'
 import { SettingsScreen } from './components/SettingsScreen'
 import { CloseNoticeModal } from './components/CloseNoticeModal'
+import { ResumeDialog } from './components/ResumeDialog'
 import { OverlayScreen } from './screens/OverlayScreen'
 import { MiniFocusScreen } from './screens/MiniFocusScreen'
 import { ToastScreen } from './screens/ToastScreen'
+import { SessionConfigProvider, useSessionConfig } from './context/SessionConfigContext'
 
 const defaultSessionConfig: SessionConfig = {
   focusMinutes: 30,
   restMinutes: 5,
   loopCount: 2,
-  restActivityIds: [null, null, null, null, null, null, null, null]
+  restActivityIds: [null, null]
 }
 
 const defaultSnapshot: SessionSnapshot = {
@@ -37,82 +40,33 @@ const defaultLibrary: LibraryPayload = {
   defaultId: undefined
 }
 
-export default function App(): React.JSX.Element {
-  const urlParams = new URLSearchParams(window.location.search)
-
-  // 1. Check for multi-display overlay window mode
-  const overlayMode = urlParams.get('overlay') as 'primary' | 'backdrop' | null
-  const displayId = urlParams.get('displayId') || undefined
-  if (overlayMode === 'primary' || overlayMode === 'backdrop') {
-    return <OverlayScreen mode={overlayMode} displayId={displayId} />
-  }
-
-  // 2. Check for mini focus window
-  const windowMode = urlParams.get('window')
-  if (windowMode === 'mini') {
-    document.documentElement.classList.add('html-mini-window')
-    document.body.classList.add('body-mini-window')
-    document.body.classList.remove('bg-bg')
-    return <MiniFocusScreen />
-  }
-
-  // 3. Check for toast notification
-  const toastType = urlParams.get('toast')
-  if (toastType) {
-    const toastId = urlParams.get('toastId') || ''
-    const label = urlParams.get('label') || undefined
-    const text = urlParams.get('text') || undefined
-    const durationMs = Number(urlParams.get('duration')) || 8000
-    return (
-      <ToastScreen
-        type={toastType}
-        toastId={toastId}
-        label={label}
-        text={text}
-        durationMs={durationMs}
-      />
-    )
-  }
+function MainContent(): React.JSX.Element {
+  const getApi = () => window.revive || window.still
+  const { config, setSlotActivity, startSession } = useSessionConfig()
 
   const [currentRoute, setCurrentRoute] = useState<AppRoute>('focus')
   const [collapsed, setCollapsed] = useState<boolean>(true) // Collapsed by default per spec
   const [pickForRestIndex, setPickForRestIndex] = useState<number | null>(null)
   const [isCloseNoticeOpen, setIsCloseNoticeOpen] = useState<boolean>(false)
+  const [pendingResume, setPendingResume] = useState<PersistedSessionState | null>(null)
 
-  const [config, setConfig] = useState<SessionConfig>(defaultSessionConfig)
   const [snapshot, setSnapshot] = useState<SessionSnapshot>(defaultSnapshot)
   const [library, setLibrary] = useState<LibraryPayload>(defaultLibrary)
-  const [isLoaded, setIsLoaded] = useState<boolean>(false)
-
-  const saveTimeoutRef = useRef<any>(null)
-
-  // Helper to access IPC API (revive or still fallback)
-  const getApi = () => window.revive || window.still
 
   // 1. Initial Load & Subscriptions
   useEffect(() => {
     async function initApp(): Promise<void> {
       try {
         const api = getApi()
-        const [loadedPrefs, loadedSnapshot, loadedLib] = await Promise.all([
+        const [loadedPrefs, loadedSnapshot, loadedLib, checkResume] = await Promise.all([
           api?.prefs?.get(),
           api?.session?.getSnapshot(),
-          window.libraryApi?.getLibrary()
+          window.libraryApi?.getLibrary(),
+          api?.session?.checkPendingResume?.()
         ])
 
         if (loadedPrefs) {
           setCollapsed(Boolean(loadedPrefs.sidebarCollapsed))
-          const rawActivityIds = Array.isArray(loadedPrefs.restActivityIds)
-            ? loadedPrefs.restActivityIds
-            : []
-          const fullArray = Array.from({ length: 8 }, (_, i) => rawActivityIds[i] ?? null)
-
-          setConfig({
-            focusMinutes: loadedPrefs.focusMinutes ?? 30,
-            restMinutes: loadedPrefs.restMinutes ?? 5,
-            loopCount: loadedPrefs.loopCount ?? 2,
-            restActivityIds: fullArray
-          })
         }
 
         if (loadedSnapshot) {
@@ -122,10 +76,13 @@ export default function App(): React.JSX.Element {
         if (loadedLib) {
           setLibrary(loadedLib)
         }
+
+        if (checkResume) {
+          setPendingResume(checkResume)
+        }
       } catch (err) {
         console.error('Failed to initialize app state:', err)
       }
-      setIsLoaded(true)
     }
 
     initApp()
@@ -153,37 +110,11 @@ export default function App(): React.JSX.Element {
     }
   }, [])
 
-  // 2. Debounced Preferences Persistence (~300ms)
-  const persistPrefs = useCallback((nextConfig: SessionConfig, isCollapsed: boolean) => {
-    const api = getApi()
-    if (!api?.prefs) return
-    if (saveTimeoutRef.current) {
-      clearTimeout(saveTimeoutRef.current)
-    }
-    saveTimeoutRef.current = setTimeout(() => {
-      api.prefs.set({
-        focusMinutes: nextConfig.focusMinutes,
-        restMinutes: nextConfig.restMinutes,
-        loopCount: nextConfig.loopCount,
-        restActivityIds: nextConfig.restActivityIds,
-        sidebarCollapsed: isCollapsed
-      })
-    }, 300)
-  }, [])
-
-  const handleConfigChange = (newConfig: SessionConfig): void => {
-    setConfig(newConfig)
-    if (isLoaded) {
-      persistPrefs(newConfig, collapsed)
-    }
-  }
-
   const handleToggleCollapse = (): void => {
     const nextCollapsed = !collapsed
     setCollapsed(nextCollapsed)
-    if (isLoaded) {
-      persistPrefs(config, nextCollapsed)
-    }
+    const api = getApi()
+    api?.prefs?.set?.({ sidebarCollapsed: nextCollapsed })
   }
 
   const handleNavigate = (route: AppRoute): void => {
@@ -195,12 +126,8 @@ export default function App(): React.JSX.Element {
 
   // Session Handlers
   const handleStartSession = async (): Promise<void> => {
-    const api = getApi()
-    if (api?.session) {
-      const snap = await api.session.start(config)
-      setSnapshot(snap)
-      setCurrentRoute('focus')
-    }
+    await startSession()
+    setCurrentRoute('focus')
   }
 
   const handleSkipToRest = async (): Promise<void> => {
@@ -229,6 +156,27 @@ export default function App(): React.JSX.Element {
     }
   }
 
+  // Resume Session Dialog Handlers
+  const handleConfirmResume = async (): Promise<void> => {
+    const api = getApi()
+    setPendingResume(null)
+    if (api?.session?.confirmResume) {
+      const resumed = await api.session.confirmResume(true)
+      if (resumed) {
+        const snap = await api.session.getSnapshot()
+        setSnapshot(snap)
+      }
+    }
+  }
+
+  const handleDiscardResume = async (): Promise<void> => {
+    const api = getApi()
+    setPendingResume(null)
+    if (api?.session?.confirmResume) {
+      await api.session.confirmResume(false)
+    }
+  }
+
   // Pick Mode Handlers
   const handlePickActivityForRest = (index: number): void => {
     setPickForRestIndex(index)
@@ -236,13 +184,8 @@ export default function App(): React.JSX.Element {
   }
 
   const handleSelectActivityForSlot = async (activityId: string | null): Promise<void> => {
-    const api = getApi()
-    if (pickForRestIndex !== null && api?.session) {
-      const updatedConfig = await api.session.setRestActivity(pickForRestIndex, activityId)
-      setConfig(updatedConfig)
-      if (isLoaded) {
-        persistPrefs(updatedConfig, collapsed)
-      }
+    if (pickForRestIndex !== null) {
+      await setSlotActivity(pickForRestIndex, activityId)
     }
     setPickForRestIndex(null)
     setCurrentRoute('focus')
@@ -276,14 +219,9 @@ export default function App(): React.JSX.Element {
     if (window.libraryApi) {
       await window.libraryApi.deleteActivity(id)
       // Check if deleted activity was in local config slots
-      const hasSlot = config.restActivityIds.includes(id)
-      if (hasSlot) {
-        const updatedSlots = config.restActivityIds.map((s) => (s === id ? null : s))
-        const updatedConfig = { ...config, restActivityIds: updatedSlots }
-        setConfig(updatedConfig)
-        if (isLoaded) {
-          persistPrefs(updatedConfig, collapsed)
-        }
+      const slotIndex = config.restActivityIds.indexOf(id)
+      if (slotIndex !== -1) {
+        await setSlotActivity(slotIndex, null)
       }
     }
   }
@@ -373,10 +311,8 @@ export default function App(): React.JSX.Element {
 
       {currentRoute === 'focus' && (
         <FocusScreen
-          config={config}
           snapshot={snapshot}
           library={library.activities || []}
-          onChangeConfig={handleConfigChange}
           onPickActivityForRest={handlePickActivityForRest}
           onStartSession={handleStartSession}
           onSkipToRest={handleSkipToRest}
@@ -403,6 +339,13 @@ export default function App(): React.JSX.Element {
         <SettingsScreen onBack={() => setCurrentRoute('focus')} />
       )}
 
+      {/* Resume Confirmation Dialog */}
+      <ResumeDialog
+        isOpen={pendingResume !== null}
+        onConfirm={handleConfirmResume}
+        onDiscard={handleDiscardResume}
+      />
+
       {/* Close While Running Notice Modal */}
       <CloseNoticeModal
         isOpen={isCloseNoticeOpen}
@@ -410,5 +353,49 @@ export default function App(): React.JSX.Element {
         onChoice={handleCloseChoice}
       />
     </div>
+  )
+}
+
+export default function App(): React.JSX.Element {
+  const urlParams = new URLSearchParams(window.location.search)
+
+  // 1. Check for multi-display overlay window mode
+  const overlayMode = urlParams.get('overlay') as 'primary' | 'backdrop' | null
+  const displayId = urlParams.get('displayId') || undefined
+  if (overlayMode === 'primary' || overlayMode === 'backdrop') {
+    return <OverlayScreen mode={overlayMode} displayId={displayId} />
+  }
+
+  // 2. Check for mini focus window
+  const windowMode = urlParams.get('window')
+  if (windowMode === 'mini') {
+    document.documentElement.classList.add('html-mini-window')
+    document.body.classList.add('body-mini-window')
+    document.body.classList.remove('bg-bg')
+    return <MiniFocusScreen />
+  }
+
+  // 3. Check for toast notification
+  const toastType = urlParams.get('toast')
+  if (toastType) {
+    const toastId = urlParams.get('toastId') || ''
+    const label = urlParams.get('label') || undefined
+    const text = urlParams.get('text') || undefined
+    const durationMs = Number(urlParams.get('duration')) || 8000
+    return (
+      <ToastScreen
+        type={toastType}
+        toastId={toastId}
+        label={label}
+        text={text}
+        durationMs={durationMs}
+      />
+    )
+  }
+
+  return (
+    <SessionConfigProvider>
+      <MainContent />
+    </SessionConfigProvider>
   )
 }

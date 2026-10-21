@@ -26,11 +26,14 @@ export function RoutinePlayer({
       ]
 
   const [currentStepIndex, setCurrentStepIndex] = useState<number>(0)
-  const [stepSecondsRemaining, setStepSecondsRemaining] = useState<number>(rawSteps[0].seconds)
+  const initialSeconds = Number(rawSteps[0]?.seconds) || 30
+  const [stepSecondsRemaining, setStepSecondsRemaining] = useState<number>(initialSeconds)
 
   const activeStep = rawSteps[currentStepIndex] || rawSteps[0]
+  const activeTitle = activeStep?.title || activeStep?.name || 'Movement'
   const nextStepIndex = (currentStepIndex + 1) % rawSteps.length
   const nextStep = rawSteps[nextStepIndex]
+  const nextTitle = nextStep?.title || nextStep?.name || 'Next'
 
   // Track step timer
   const lastStepIndexRef = useRef<number>(currentStepIndex)
@@ -38,7 +41,8 @@ export function RoutinePlayer({
 
   useEffect(() => {
     // Reset to step duration whenever current step changes
-    setStepSecondsRemaining(rawSteps[currentStepIndex]?.seconds || 30)
+    const dur = Number(rawSteps[currentStepIndex]?.seconds) || 30
+    setStepSecondsRemaining(dur)
   }, [currentStepIndex, rawSteps])
 
   useEffect(() => {
@@ -49,7 +53,8 @@ export function RoutinePlayer({
           soundRegistry.playRoutineStepChime()
           // Advance to next step
           setCurrentStepIndex((curr) => (curr + 1) % rawSteps.length)
-          return rawSteps[nextStepIndex]?.seconds || 30
+          const nextDur = Number(rawSteps[nextStepIndex]?.seconds) || 30
+          return nextDur
         }
         return prev - 1
       })
@@ -68,26 +73,21 @@ export function RoutinePlayer({
   const overallProgressPct = totalMs > 0 ? Math.min(100, Math.max(0, ((totalMs - remainingMs) / totalMs) * 100)) : 0
 
   // Step ring animation
-  const stepTotalSec = activeStep.seconds || 30
+  const stepTotalSec = Number(activeStep?.seconds) || 30
   const stepProgressPct = Math.min(1, Math.max(0, (stepTotalSec - stepSecondsRemaining) / stepTotalSec))
   const ringRadius = 110
   const circumference = 2 * Math.PI * ringRadius
   const strokeDashoffset = circumference * (1 - stepProgressPct)
 
-  const handlePrevStep = () => {
-    setCurrentStepIndex((curr) => (curr - 1 + rawSteps.length) % rawSteps.length)
-  }
-
-  const handleNextStep = () => {
-    setCurrentStepIndex((curr) => (curr + 1) % rawSteps.length)
-  }
-
   return (
     <div className="relative w-full h-full flex flex-col justify-between select-none z-10 font-mono">
-      {/* Top Header: Left Activity Info + Top-Right Overall Rest Countdown */}
+      {/* Top Header: Rest N of M + Activity Info + Top-Right Overall Rest Countdown */}
       <header className="w-full flex items-center justify-between px-8 py-6 z-20">
-        <div className="flex items-center gap-2">
-          <span className="px-2.5 py-0.5 text-[9px] uppercase tracking-[0.14em] text-[var(--accent)] border border-[var(--accent-line)] bg-[var(--accent-wash)] rounded-[3px]">
+        <div className="flex items-center gap-3">
+          <span className="text-[11px] tracking-[0.14em] uppercase text-[var(--muted)] font-mono">
+            Rest {snapshot.loopIndex + 1} of {snapshot.loopCount}
+          </span>
+          <span className="px-2 py-0.5 text-[9px] uppercase tracking-[0.14em] text-[var(--accent)] border border-[var(--accent-line)] bg-[var(--accent-wash)] rounded-[3px]">
             Routine
           </span>
           <span className="text-[12px] text-[var(--text)] tracking-[0.08em] font-medium">
@@ -96,12 +96,9 @@ export function RoutinePlayer({
         </div>
 
         {/* Top-Right Rest Timer Badge */}
-        <div className="flex items-center gap-3 bg-white/[0.03] border border-white/10 px-3.5 py-1.5 rounded-full backdrop-blur-md shadow-[0_0_12px_rgba(0,0,0,0.5)]">
+        <div className="flex items-center gap-3 font-mono">
           <span className="w-2 h-2 rounded-full bg-[var(--accent)] shadow-[0_0_8px_var(--accent)] animate-pulse" />
-          <span className="text-[10px] uppercase tracking-[0.14em] text-[var(--muted)]">
-            Rest timer
-          </span>
-          <span className="text-[13px] text-[var(--text)] tracking-[0.1em] font-medium tabular-nums text-shadow">
+          <span className="text-[12px] text-[var(--text)] tracking-[0.1em] tabular-nums">
             {overallFormatted}
           </span>
         </div>
@@ -114,12 +111,19 @@ export function RoutinePlayer({
           Step {currentStepIndex + 1} of {rawSteps.length}
         </div>
 
-        {/* Dynamic Prompt: "Time for shoulder rolls, 30 seconds" */}
-        <h2 className="text-[24px] sm:text-[28px] font-medium tracking-[0.08em] uppercase text-[var(--text)] text-center mb-8 max-w-xl animate-[fadeRise_0.4s_cubic-bezier(0.16,1,0.3,1)_forwards]">
-          Time for {activeStep.name}
+        {/* Dynamic Prompt: "Time for seated spinal twist" */}
+        <h2 className="text-[24px] sm:text-[28px] font-medium tracking-[0.08em] uppercase text-[var(--text)] text-center mb-4 max-w-xl animate-[fadeRise_0.4s_cubic-bezier(0.16,1,0.3,1)_forwards]">
+          {activeTitle}
         </h2>
 
-        {/* Circular Ring Timer */}
+        {/* Step Body Instructions if available */}
+        {activeStep?.body && (
+          <p className="text-[12.5px] text-white/70 max-w-lg text-center leading-relaxed mb-6 font-mono font-normal">
+            {activeStep.body}
+          </p>
+        )}
+
+        {/* Circular Progress Arc (No Number Inside) */}
         <div className="relative flex items-center justify-center">
           <svg className="w-[260px] h-[260px] -rotate-90 pointer-events-none" viewBox="0 0 260 260">
             <circle
@@ -143,56 +147,27 @@ export function RoutinePlayer({
               className="transition-[stroke-dashoffset] duration-300 ease-linear"
             />
           </svg>
-
-          {/* Time Display Inside Ring */}
-          <div className="absolute flex flex-col items-center justify-center pointer-events-none">
-            <span className="text-[44px] font-light text-[var(--text)] tracking-[0.04em] tabular-nums drop-shadow-[0_0_16px_rgba(175,221,255,0.45)]">
-              {stepSecondsRemaining}
-              <span className="text-[20px] font-normal text-[var(--muted)] ml-0.5">s</span>
-            </span>
-            <span className="text-[10px] uppercase tracking-[0.16em] text-[var(--muted)] mt-0.5">
-              Step remaining
-            </span>
-          </div>
         </div>
 
-        {/* Step Navigation & Next Up Preview */}
-        <div className="mt-8 flex items-center gap-6">
-          <button
-            type="button"
-            onClick={handlePrevStep}
-            className="px-3 py-1 text-[11px] text-[var(--muted)] hover:text-white border border-white/10 hover:border-white/20 bg-white/[0.02] rounded-full transition-all cursor-pointer"
-            aria-label="Previous step"
-          >
-            ← Prev
-          </button>
-
+        {/* Next Up Preview (No Skip/Prev buttons, steps advance automatically) */}
+        <div className="mt-8 flex items-center justify-center">
           <div className="text-[11.5px] text-[var(--muted)] tracking-[0.06em] text-center">
-            Next: <span className="text-[var(--text)] font-medium">{nextStep.name}</span> ({nextStep.seconds}s)
+            Next: <span className="text-[var(--text)] font-medium">{nextTitle}</span>
           </div>
-
-          <button
-            type="button"
-            onClick={handleNextStep}
-            className="px-3 py-1 text-[11px] text-[var(--muted)] hover:text-white border border-white/10 hover:border-white/20 bg-white/[0.02] rounded-full transition-all cursor-pointer"
-            aria-label="Skip to next step"
-          >
-            Skip →
-          </button>
         </div>
 
-        {activity.note && (
+        {(activity.notes || activity.note) && (
           <p className="mt-6 text-[12px] text-[var(--muted)] tracking-[0.04em] text-center max-w-md">
-            {activity.note}
+            {activity.notes || activity.note}
           </p>
         )}
       </main>
 
-      {/* Footer: Centered Esc reminder + Hairline Rest Progress */}
+      {/* Footer: Centered Esc reminder + Resume focus pill + Hairline Rest Progress */}
       <footer className="w-full flex flex-col z-20">
-        <div className="w-full flex items-center justify-center px-8 py-3.5">
-          <span className="text-[11px] text-[var(--muted)] tracking-[0.08em] select-none">
-            Press Escape to escape.
+        <div className="w-full flex items-center justify-between px-8 py-3.5">
+          <span className="text-[11px] text-[var(--muted)] tracking-[0.08em] select-none font-mono">
+            Press ESC to escape.
           </span>
         </div>
 

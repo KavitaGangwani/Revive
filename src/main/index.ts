@@ -2,8 +2,8 @@ import { app, BrowserWindow, ipcMain, powerMonitor, screen, session } from 'elec
 import { promises as fs } from 'fs'
 import { join } from 'path'
 import { runBootSequence } from './boot'
-import { getStore, initStore, clampAndMergeSettings, defaultSoundPacks, getFullLibrary, inferPhaseKind } from './store'
-import { builtInActivities } from './builtInActivities'
+import { getStore, initStore, clampAndMergeSettings, defaultSoundPacks, getFullLibrary, inferPhaseKind, getDraftConfig, saveDraftConfig, pruneDraftSlotChoicesOnStart } from './store'
+import { isBuiltinActivityId } from '../shared/builtinActivities'
 import { SessionEngine } from './sessionEngine'
 import { TrayManager } from './tray'
 import { OverlayManager } from './overlayManager'
@@ -90,6 +90,9 @@ if (!gotTheLock) {
     },
     onResumeFocus: () => {
       sessionEngine.resumeFocus()
+    },
+    onResetToIdle: () => {
+      sessionEngine.doneForNow()
     }
   })
 
@@ -132,7 +135,14 @@ if (!gotTheLock) {
   // Initialize SessionEngine
   const sessionEngine = new SessionEngine({
     isPackaged: app.isPackaged,
+    awaitOverlayClose: async () => {
+      await overlayManager.closeOverlaysAsync()
+    },
     onSnapshot: (snapshot) => {
+      if (snapshot.phase === 'transition-to-rest' || snapshot.phase === 'rest') {
+        toastManager.dismissRestWarnings()
+      }
+
       trayManager.handleSnapshot(snapshot)
       overlayManager.handleSnapshot(snapshot)
       miniWindowManager.handleSnapshot(snapshot)
@@ -151,7 +161,10 @@ if (!gotTheLock) {
       const settings = store.get('settings')
       const restWarningEnabled = settings?.takeover?.restWarning ?? true
       if (restWarningEnabled) {
-        toastManager.showToast('restWarning')
+        const snap = sessionEngine.getSnapshot()
+        const allowSnooze = settings?.takeover?.allowSnooze ?? true
+        const canSnooze = allowSnooze && !snap.snoozeUsed
+        toastManager.showToast('restWarning', { canSnooze })
       }
     },
     getDefaultRestActivityId: () => {
@@ -160,7 +173,7 @@ if (!gotTheLock) {
     },
     getActivityById: (id: string) => {
       const lib = getFullLibrary()
-      return lib?.activities?.find((a) => a.id === id)
+      return lib?.activities?.find((a: Activity) => a.id === id)
     }
   })
 
@@ -191,6 +204,18 @@ if (!gotTheLock) {
       if (mainWin.isMinimized()) mainWin.restore()
       mainWin.show()
       mainWin.focus()
+    }
+  })
+
+  // Log webview did-fail-load and console-message events to the main console
+  app.on('web-contents-created', (_event, contents) => {
+    if (contents.getType() === 'webview') {
+      contents.on('did-fail-load', (_event, errorCode, errorDescription, validatedURL) => {
+        console.error(`[main console] [webview did-fail-load] code=${errorCode} desc=${errorDescription} url=${validatedURL}`)
+      })
+      contents.on('console-message', (_event, level, message, line, sourceId) => {
+        console.log(`[main console] [webview console-message] [level ${level}] (${sourceId}:${line}) ${message}`)
+      })
     }
   })
 
@@ -311,6 +336,9 @@ if (!gotTheLock) {
       return sessionEngine.getSnapshot()
     }
     const config = rawConfig as Partial<SessionConfig>
+    if (typeof config.loopCount === 'number') {
+      pruneDraftSlotChoicesOnStart(config.loopCount)
+    }
     return sessionEngine.start(config)
   })
 
@@ -328,12 +356,27 @@ if (!gotTheLock) {
 
   ipcMain.handle(IPC_CHANNELS.SESSION_SNOOZE, () => {
     const settings = store.get('settings')
-    const minutes = settings?.takeover?.snoozeMinutes ?? 2
+    const minutes = settings?.takeover?.snoozeMinutes ?? 5
+    toastManager.dismissRestWarnings()
     return sessionEngine.snooze(minutes)
   })
 
   ipcMain.handle(IPC_CHANNELS.SESSION_RESUME_FOCUS, () => {
     return sessionEngine.resumeFocus()
+  })
+
+  ipcMain.handle(IPC_CHANNELS.SESSION_SET_LEFT_OFF_NOTE, (_event, note: unknown) => {
+    const validNote = typeof note === 'string' ? note.slice(0, 200) : ''
+    sessionEngine.setLeftOffNote(validNote)
+    return sessionEngine.getSnapshot()
+  })
+
+  ipcMain.handle(IPC_CHANNELS.SESSION_BACK_TO_WORK, () => {
+    return sessionEngine.backToWork()
+  })
+
+  ipcMain.handle(IPC_CHANNELS.SESSION_BEGIN_REST_NOW, () => {
+    return sessionEngine.beginRestNow()
   })
 
   ipcMain.handle(
@@ -363,6 +406,55 @@ if (!gotTheLock) {
       return updatedConfig
     }
   )
+
+  ipcMain.handle(IPC_CHANNELS.SESSION_GET_DRAFT_CONFIG, () => {
+    return getDraftConfig()
+  })
+
+  ipcMain.handle(IPC_CHANNELS.SESSION_SET_DRAFT_CONFIG, (_event, draft: unknown) => {
+    if (typeof draft !== 'object' || draft === null) {
+      return getDraftConfig()
+    }
+    return saveDraftConfig(draft as any)
+  })
+
+  ipcMain.handle(IPC_CHANNELS.SESSION_CHECK_PENDING_RESUME, () => {
+    const persisted = store.get('persistedSession')
+    if (!persisted || persisted.phase === 'idle' || persisted.phase === 'session-complete') {
+      return null
+    }
+    const savedTime = persisted.savedAt || persisted.phaseEndsAt || 0
+    const ageMs = Date.now() - savedTime
+    if (ageMs > 10 * 60 * 1000 || ageMs < -60000) {
+      store.set('persistedSession', null)
+      return null
+    }
+    return persisted
+  })
+
+  ipcMain.handle(IPC_CHANNELS.SESSION_CONFIRM_RESUME, (_event, confirm: unknown) => {
+    const persisted = store.get('persistedSession')
+    if (!confirm || !persisted) {
+      store.set('persistedSession', null)
+      return false
+    }
+    const savedTime = persisted.savedAt || persisted.phaseEndsAt || 0
+    const ageMs = Date.now() - savedTime
+    if (ageMs > 10 * 60 * 1000 || ageMs < -60000) {
+      store.set('persistedSession', null)
+      return false
+    }
+    const resumed = sessionEngine.resumeFromPersisted(persisted)
+    trayManager.handleSnapshot(sessionEngine.getSnapshot())
+    return resumed
+  })
+
+  ipcMain.handle(IPC_CHANNELS.DEV_RESET_TO_IDLE, () => {
+    if (!app.isPackaged) {
+      overlayManager.closeOverlays(true)
+      sessionEngine.doneForNow()
+    }
+  })
 
   // IPC Handlers — Sounds & Packs
   ipcMain.handle(IPC_CHANNELS.SOUND_GET_PACKS, () => {
@@ -587,7 +679,7 @@ if (!gotTheLock) {
       }
 
       // Rejects built-ins with exact error per spec
-      if (builtInActivities.some((b) => b.id === id)) {
+      if (isBuiltinActivityId(id)) {
         return { ok: false, error: "Built-in activities can't be edited." }
       }
 
@@ -625,8 +717,7 @@ if (!gotTheLock) {
 
   ipcMain.handle(IPC_CHANNELS.LIBRARY_DELETE, (_event, id: unknown) => {
     if (typeof id !== 'string') return
-    const isBuiltIn = builtInActivities.some((a) => a.id === id)
-    if (isBuiltIn) {
+    if (isBuiltinActivityId(id)) {
       throw new Error("Built-in activities can't be edited.")
     }
     const currentLib = store.get('library') || { custom: [], defaults: {} }
@@ -763,11 +854,15 @@ if (!gotTheLock) {
     screen.on('display-removed', handleDisplaysUpdated)
     screen.on('display-metrics-changed', handleDisplaysUpdated)
 
-    // Resume persisted session on boot
+    // On app start, never open overlay windows automatically. Always boot to the Focus screen with phase 'idle'.
+    // Clean up persisted session if it's over 10 minutes old.
     const persisted = store.get('persistedSession')
     if (persisted) {
-      sessionEngine.resumeFromPersisted(persisted)
-      trayManager.handleSnapshot(sessionEngine.getSnapshot())
+      const savedTime = persisted.savedAt || persisted.phaseEndsAt || 0
+      const ageMs = Date.now() - savedTime
+      if (ageMs > 10 * 60 * 1000 || ageMs < -60000) {
+        store.set('persistedSession', null)
+      }
     }
 
     const { mainWindow } = await runBootSequence(appReadyAt)

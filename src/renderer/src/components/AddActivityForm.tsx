@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react'
-import { Activity, ActivityType } from '../../../shared/types'
+import { Activity, ActivityType, PhaseKind } from '../../../shared/types'
 import { Icon } from './Icon'
 import { CycleBar } from './CycleBar'
 
@@ -19,10 +19,33 @@ interface AddActivityFormProps {
 type SelectedType = 'none' | 'breathing' | 'routine'
 type SelectedMedia = 'none' | 'youtube' | 'spotify'
 
-interface PhaseState {
-  label: string
-  seconds: number | string
+export type PhaseType = 'Inhale' | 'Hold' | 'Exhale'
+
+export interface PhaseState {
+  type: PhaseType
+  seconds: number
 }
+
+export function mapPhaseNameToType(nameOrLabel?: string): PhaseType {
+  if (!nameOrLabel || typeof nameOrLabel !== 'string') return 'Inhale'
+  const lower = nameOrLabel.toLowerCase()
+  if (lower.includes('hold') || lower.includes('pause') || lower.includes('stay') || lower.includes('rest')) {
+    return 'Hold'
+  }
+  if (lower.includes('out') || lower.includes('ex') || lower.includes('exhale')) {
+    return 'Exhale'
+  }
+  if (lower.includes('in') || lower.includes('inhale')) {
+    return 'Inhale'
+  }
+  return 'Inhale'
+}
+
+const DEFAULT_BREATHING_PHASES: PhaseState[] = [
+  { type: 'Inhale', seconds: 4 },
+  { type: 'Hold', seconds: 4 },
+  { type: 'Exhale', seconds: 4 }
+]
 
 interface StepState {
   name: string
@@ -44,10 +67,8 @@ export const AddActivityForm: React.FC<AddActivityFormProps> = ({
   const [selectedMedia, setSelectedMedia] = useState<SelectedMedia>('none')
   const [mediaUrl, setMediaUrl] = useState('')
 
-  const [phases, setPhases] = useState<PhaseState[]>([
-    { label: 'Inhale', seconds: 4 },
-    { label: 'Exhale', seconds: 6 }
-  ])
+  // Pre-populated with Inhale 4s, Hold 4s, Exhale 4s
+  const [phases, setPhases] = useState<PhaseState[]>(DEFAULT_BREATHING_PHASES)
 
   const [steps, setSteps] = useState<StepState[]>([
     { name: 'Neck rolls', seconds: 30 },
@@ -76,17 +97,20 @@ export const AddActivityForm: React.FC<AddActivityFormProps> = ({
         setSelectedType('none')
       }
 
+      // Migrate existing saved breathing activities to closest type
       if (editingActivity.phases && editingActivity.phases.length > 0) {
-        setPhases(editingActivity.phases.map((p) => ({ label: p.label, seconds: p.seconds })))
+        setPhases(
+          editingActivity.phases.map((p) => ({
+            type: mapPhaseNameToType(p.label),
+            seconds: Math.max(1, Math.min(30, Number(p.seconds) || 4))
+          }))
+        )
       } else {
-        setPhases([
-          { label: 'Inhale', seconds: 4 },
-          { label: 'Exhale', seconds: 6 }
-        ])
+        setPhases(DEFAULT_BREATHING_PHASES)
       }
 
       if (editingActivity.steps && editingActivity.steps.length > 0) {
-        setSteps(editingActivity.steps.map((s) => ({ name: s.name, seconds: s.seconds })))
+        setSteps(editingActivity.steps.map((s) => ({ name: s.name || s.title || '', seconds: Number(s.seconds) || 30 })))
       } else {
         setSteps([
           { name: 'Neck rolls', seconds: 30 },
@@ -117,10 +141,7 @@ export const AddActivityForm: React.FC<AddActivityFormProps> = ({
     setNote('')
     setSelectedMedia('none')
     setMediaUrl('')
-    setPhases([
-      { label: 'Inhale', seconds: 4 },
-      { label: 'Exhale', seconds: 6 }
-    ])
+    setPhases(DEFAULT_BREATHING_PHASES)
     setSteps([
       { name: 'Neck rolls', seconds: 30 },
       { name: 'Shoulder rolls', seconds: 30 }
@@ -154,26 +175,41 @@ export const AddActivityForm: React.FC<AddActivityFormProps> = ({
   }
 
   // Breathing Phase Handlers
-  const handlePhaseLabelChange = (index: number, val: string): void => {
+  const handlePhaseTypeChange = (index: number, newType: PhaseType): void => {
     setPhases((prev) => {
       const next = [...prev]
-      next[index] = { ...next[index], label: val }
+      next[index] = { ...next[index], type: newType }
       return next
     })
   }
 
-  const handlePhaseSecondsChange = (index: number, val: string): void => {
-    const cleanDigits = val.replace(/\D/g, '')
+  const handleStepSeconds = (index: number, delta: number): void => {
     setPhases((prev) => {
       const next = [...prev]
-      next[index] = { ...next[index], seconds: cleanDigits }
+      const current = Number(next[index].seconds) || 4
+      const updated = Math.max(1, Math.min(30, current + delta))
+      next[index] = { ...next[index], seconds: updated }
       return next
     })
+  }
+
+  // Cycle helper: Inhale -> Hold -> Exhale -> Hold -> Inhale
+  const getNextPhaseType = (curr: PhaseState[]): PhaseType => {
+    if (curr.length === 0) return 'Inhale'
+    const last = curr[curr.length - 1].type
+    if (last === 'Inhale') return 'Hold'
+    if (last === 'Exhale') return 'Hold'
+    if (last === 'Hold') {
+      const prev = curr.length >= 2 ? curr[curr.length - 2].type : 'Inhale'
+      return prev === 'Inhale' ? 'Exhale' : 'Inhale'
+    }
+    return 'Inhale'
   }
 
   const handleAddPhase = (): void => {
     if (phases.length >= 8) return
-    setPhases((prev) => [...prev, { label: 'Hold', seconds: 4 }])
+    const nextType = getNextPhaseType(phases)
+    setPhases((prev) => [...prev, { type: nextType, seconds: 4 }])
   }
 
   const handleRemovePhase = (index: number): void => {
@@ -223,24 +259,21 @@ export const AddActivityForm: React.FC<AddActivityFormProps> = ({
     }
 
     // 2. Breathing validation
-    let validatedPhases: { label: string; seconds: number }[] | undefined = undefined
+    let validatedPhases: { label: string; seconds: number; kind: PhaseKind }[] | undefined = undefined
     if (selectedType === 'breathing') {
       if (phases.length < 1 || phases.length > 8) {
-        setError('Every phase needs a label and 1–30 seconds.')
-        firstPhaseRef.current?.focus()
+        setError('Breathing activities require 1 to 8 phases.')
         return
       }
-      validatedPhases = []
-      for (const p of phases) {
-        const pLabel = p.label.trim()
-        const pSecs = Number(p.seconds)
-        if (!pLabel || pLabel.length > 24 || !Number.isFinite(pSecs) || pSecs < 1 || pSecs > 30) {
-          setError('Every phase needs a label and 1–30 seconds.')
-          firstPhaseRef.current?.focus()
-          return
+      validatedPhases = phases.map((p) => {
+        const kind: PhaseKind = p.type === 'Inhale' ? 'in' : p.type === 'Hold' ? 'hold' : 'out'
+        const secs = Math.max(1, Math.min(30, Math.round(Number(p.seconds) || 4)))
+        return {
+          label: p.type,
+          seconds: secs,
+          kind
         }
-        validatedPhases.push({ label: pLabel, seconds: Math.round(pSecs) })
-      }
+      })
     }
 
     // 3. Routine validation
@@ -441,68 +474,222 @@ export const AddActivityForm: React.FC<AddActivityFormProps> = ({
 
         {/* 3. Builder */}
         {selectedType === 'breathing' && (
-          <div className="f" style={{ gap: '6px' }}>
+          <div className="f" style={{ gap: '8px' }}>
             <label className="label">Phases</label>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+
+            {/* Phase List */}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
               {phases.map((p, index) => (
-                <div key={index} className="ph" style={{ display: 'grid', gridTemplateColumns: '1fr 64px 26px', gap: '6px', alignItems: 'center' }}>
-                  <input
-                    ref={index === 0 ? firstPhaseRef : undefined}
-                    type="text"
-                    maxLength={24}
-                    value={p.label}
-                    onChange={(e) => handlePhaseLabelChange(index, e.target.value)}
-                    onKeyDown={handleInputKeyDown}
-                    placeholder={`Phase ${index + 1}`}
-                    aria-label={`Phase ${index + 1} label`}
-                  />
-                  <input
-                    type="text"
-                    inputMode="numeric"
-                    value={p.seconds}
-                    onChange={(e) => handlePhaseSecondsChange(index, e.target.value)}
-                    onKeyDown={handleInputKeyDown}
-                    placeholder="4"
-                    aria-label={`Phase ${index + 1} seconds`}
-                    style={{ textAlign: 'center' }}
-                  />
-                  <button
-                    type="button"
-                    className="x"
-                    onClick={() => handleRemovePhase(index)}
-                    disabled={phases.length <= 1}
-                    aria-label="Remove phase"
+                <div
+                  key={index}
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '8px',
+                    padding: '2px 0'
+                  }}
+                >
+                  {/* Type dropdown styled as pill */}
+                  <div style={{ position: 'relative' }}>
+                    <select
+                      value={p.type}
+                      onChange={(e) => handlePhaseTypeChange(index, e.target.value as PhaseType)}
+                      className="pill"
+                      style={{
+                        appearance: 'none',
+                        WebkitAppearance: 'none',
+                        padding: '0 28px 0 14px',
+                        height: '32px',
+                        lineHeight: '30px',
+                        fontSize: '11px',
+                        fontWeight: 500,
+                        letterSpacing: '0.06em',
+                        borderRadius: '999px',
+                        background: 'rgba(255, 255, 255, 0.04)',
+                        borderColor: 'var(--hair)',
+                        color: 'var(--text)',
+                        cursor: 'pointer'
+                      }}
+                      aria-label={`Phase ${index + 1} type`}
+                    >
+                      <option value="Inhale" style={{ background: '#020407', color: '#afddff' }}>Inhale</option>
+                      <option value="Hold" style={{ background: '#020407', color: '#ffffff' }}>Hold</option>
+                      <option value="Exhale" style={{ background: '#020407', color: '#afddff' }}>Exhale</option>
+                    </select>
+                    <svg
+                      style={{
+                        position: 'absolute',
+                        right: '10px',
+                        top: '50%',
+                        transform: 'translateY(-50%)',
+                        pointerEvents: 'none',
+                        color: 'var(--muted)',
+                        width: '8px',
+                        height: '8px'
+                      }}
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="2.5"
+                    >
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
+                    </svg>
+                  </div>
+
+                  {/* Polished Seconds Picker: Horizontal layout, 4 and s on the same baseline, no vertical stacking */}
+                  <div
                     style={{
-                      opacity: phases.length <= 1 ? 0.3 : 1,
-                      cursor: phases.length <= 1 ? 'not-allowed' : 'pointer'
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      height: '32px',
+                      borderRadius: '8px',
+                      border: '1px solid var(--hair, rgba(255, 255, 255, 0.12))',
+                      background: 'rgba(255, 255, 255, 0.03)',
+                      overflow: 'hidden'
                     }}
                   >
-                    <Icon name="x" style={{ width: '12px', height: '12px' }} />
+                    <div
+                      style={{
+                        display: 'flex',
+                        alignItems: 'baseline',
+                        justifyContent: 'center',
+                        padding: '0 10px',
+                        gap: '2px',
+                        minWidth: '42px'
+                      }}
+                    >
+                      <span
+                        style={{
+                          fontSize: '13.5px',
+                          fontWeight: 500,
+                          color: 'var(--accent, #afddff)',
+                          fontVariantNumeric: 'tabular-nums',
+                          fontFamily: 'var(--font-mono)'
+                        }}
+                      >
+                        {p.seconds}
+                      </span>
+                      <span
+                        style={{
+                          fontSize: '10.5px',
+                          color: 'var(--muted, #8a99a8)',
+                          fontFamily: 'var(--font-mono)'
+                        }}
+                      >
+                        s
+                      </span>
+                    </div>
+
+                    <div
+                      style={{
+                        display: 'flex',
+                        flexDirection: 'column',
+                        borderLeft: '1px solid var(--hair, rgba(255, 255, 255, 0.12))',
+                        height: '100%'
+                      }}
+                    >
+                      <button
+                        type="button"
+                        onClick={() => handleStepSeconds(index, 1)}
+                        disabled={p.seconds >= 30}
+                        aria-label={`Increase phase ${index + 1} seconds`}
+                        style={{
+                          flex: 1,
+                          width: '24px',
+                          display: 'grid',
+                          placeItems: 'center',
+                          background: 'transparent',
+                          border: 'none',
+                          color: p.seconds >= 30 ? 'rgba(255, 255, 255, 0.15)' : 'var(--muted, #8a99a8)',
+                          cursor: p.seconds >= 30 ? 'not-allowed' : 'pointer',
+                          padding: 0
+                        }}
+                      >
+                        <svg style={{ width: '9px', height: '9px' }} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M18 15l-6-6-6 6" />
+                        </svg>
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => handleStepSeconds(index, -1)}
+                        disabled={p.seconds <= 1}
+                        aria-label={`Decrease phase ${index + 1} seconds`}
+                        style={{
+                          flex: 1,
+                          width: '24px',
+                          display: 'grid',
+                          placeItems: 'center',
+                          background: 'transparent',
+                          border: 'none',
+                          borderTop: '1px solid var(--hair, rgba(255, 255, 255, 0.12))',
+                          color: p.seconds <= 1 ? 'rgba(255, 255, 255, 0.15)' : 'var(--muted, #8a99a8)',
+                          cursor: p.seconds <= 1 ? 'not-allowed' : 'pointer',
+                          padding: 0
+                        }}
+                      >
+                        <svg style={{ width: '9px', height: '9px' }} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M6 9l6 6 6-6" />
+                        </svg>
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Remove circle button */}
+                  <button
+                    type="button"
+                    onClick={() => handleRemovePhase(index)}
+                    disabled={phases.length <= 1}
+                    aria-label={`Remove phase ${index + 1}`}
+                    style={{
+                      width: '28px',
+                      height: '28px',
+                      borderRadius: '50%',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      border: '1px solid var(--hair)',
+                      background: 'rgba(255, 255, 255, 0.03)',
+                      color: 'var(--muted)',
+                      cursor: phases.length <= 1 ? 'not-allowed' : 'pointer',
+                      opacity: phases.length <= 1 ? 0.3 : 1,
+                      transition: 'all 0.15s ease',
+                      marginLeft: 'auto'
+                    }}
+                  >
+                    <Icon name="x" style={{ width: '10px', height: '10px' }} />
                   </button>
                 </div>
               ))}
             </div>
 
-            <button
-              type="button"
-              className="pill addph"
-              onClick={handleAddPhase}
-              disabled={phases.length >= 8}
-              style={{
-                alignSelf: 'flex-start',
-                marginTop: '4px',
-                opacity: phases.length >= 8 ? 0.4 : 1,
-                cursor: phases.length >= 8 ? 'not-allowed' : 'pointer'
-              }}
-            >
-              + Add phase
-            </button>
+            {/* Add Phase + Total Cycle Length */}
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: '4px' }}>
+              <button
+                type="button"
+                className="pill addph"
+                onClick={handleAddPhase}
+                disabled={phases.length >= 8}
+                style={{
+                  opacity: phases.length >= 8 ? 0.4 : 1,
+                  cursor: phases.length >= 8 ? 'not-allowed' : 'pointer',
+                  height: '26px',
+                  padding: '0 12px',
+                  fontSize: '11px',
+                  borderRadius: '999px'
+                }}
+              >
+                + Add phase
+              </button>
+              <span style={{ fontSize: '11px', color: 'var(--muted)', fontVariantNumeric: 'tabular-nums' }}>
+                {phases.reduce((acc, p) => acc + (Number(p.seconds) || 0), 0)}s total cycle
+              </span>
+            </div>
 
             {/* Cycle Bar */}
             <CycleBar
               phases={phases.map((p) => ({
-                label: p.label,
-                seconds: Number(p.seconds) || 1
+                label: p.type,
+                seconds: p.seconds
               }))}
             />
           </div>

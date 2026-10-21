@@ -8,6 +8,8 @@ import {
   SessionConfig,
   SessionSnapshot,
   UserPrefs,
+  PersistedSessionState,
+  DraftConfigState,
   Activity,
   LibrarySettings,
   LibraryPayload,
@@ -99,6 +101,12 @@ const toastApi: ToastAPI = {
   },
   snooze: (minutes?: number): Promise<SessionSnapshot> => {
     return ipcRenderer.invoke(IPC_CHANNELS.SESSION_SNOOZE, minutes)
+  },
+  keepOpen: (id: string): void => {
+    ipcRenderer.send(IPC_CHANNELS.TOAST_KEEP_OPEN, id)
+  },
+  resize: (id: string, width: number, height: number): void => {
+    ipcRenderer.send(IPC_CHANNELS.TOAST_RESIZE, { id, width, height })
   }
 }
 
@@ -127,6 +135,30 @@ const revive: ReviveAPI = {
 
     setRestActivity: (index: number, id: string | null): Promise<SessionConfig> =>
       ipcRenderer.invoke(IPC_CHANNELS.SESSION_SET_REST_ACTIVITY, { index, id }),
+
+    setLeftOffNote: (note: string): Promise<SessionSnapshot> =>
+      ipcRenderer.invoke(IPC_CHANNELS.SESSION_SET_LEFT_OFF_NOTE, note),
+
+    backToWork: (): Promise<SessionSnapshot> =>
+      ipcRenderer.invoke(IPC_CHANNELS.SESSION_BACK_TO_WORK),
+
+    beginRestNow: (): Promise<SessionSnapshot> =>
+      ipcRenderer.invoke(IPC_CHANNELS.SESSION_BEGIN_REST_NOW),
+
+    getDraftConfig: (): Promise<DraftConfigState> =>
+      ipcRenderer.invoke(IPC_CHANNELS.SESSION_GET_DRAFT_CONFIG),
+
+    setDraftConfig: (draft: SessionConfig & { savedSlotChoices?: (string | null)[] }): Promise<DraftConfigState> =>
+      ipcRenderer.invoke(IPC_CHANNELS.SESSION_SET_DRAFT_CONFIG, draft),
+
+    checkPendingResume: (): Promise<PersistedSessionState | null> =>
+      ipcRenderer.invoke(IPC_CHANNELS.SESSION_CHECK_PENDING_RESUME),
+
+    confirmResume: (confirm: boolean): Promise<boolean> =>
+      ipcRenderer.invoke(IPC_CHANNELS.SESSION_CONFIRM_RESUME, confirm),
+
+    devResetToIdle: (): Promise<void> =>
+      ipcRenderer.invoke(IPC_CHANNELS.DEV_RESET_TO_IDLE),
 
     onTick: (callback: (snapshot: SessionSnapshot) => void): (() => void) => {
       const handler = (_event: IpcRendererEvent, snapshot: SessionSnapshot): void => {

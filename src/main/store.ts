@@ -7,10 +7,12 @@ import {
   SessionResume,
   UserPrefs,
   PersistedSessionState,
+  SessionConfig,
   SoundPack,
   PhaseKind,
   BreathingPhase,
-  ActivityType
+  ActivityType,
+  LibraryPayload
 } from '../shared/types'
 
 export const defaultSettings: AppSettings = {
@@ -28,7 +30,8 @@ export const defaultSettings: AppSettings = {
   },
   sound: {
     chimeAtRestStart: true,
-    chimeAtRestEnd: true
+    chimeAtRestEnd: true,
+    notificationSounds: true
   },
   autostart: false,
   miniFocusWindow: true
@@ -109,7 +112,11 @@ export function clampAndMergeSettings(
       chimeAtRestEnd:
         typeof soundPatch.chimeAtRestEnd === 'boolean'
           ? soundPatch.chimeAtRestEnd
-          : current.sound?.chimeAtRestEnd ?? true
+          : current.sound?.chimeAtRestEnd ?? true,
+      notificationSounds:
+        typeof soundPatch.notificationSounds === 'boolean'
+          ? soundPatch.notificationSounds
+          : current.sound?.notificationSounds ?? true
     },
     autostart:
       typeof patch?.autostart === 'boolean'
@@ -151,7 +158,7 @@ export const defaultSoundPacks: SoundPack[] = [
 
 export const initialSeedActivities: Activity[] = []
 
-import { builtInActivities } from './builtInActivities'
+import { BUILTIN_ACTIVITIES, mergeWithBuiltins } from '../shared/builtinActivities'
 
 export const defaultLibrary: LibrarySettings = {
   custom: [],
@@ -191,6 +198,14 @@ export function inferPhaseKind(label: string, index: number, total: number): Pha
   if (index === 0) return 'in'
   if (index === total - 1) return 'out'
   return 'hold'
+}
+
+export function mapPhaseNameToType(nameOrLabel?: string): 'Inhale' | 'Hold' | 'Exhale' {
+  const l = (nameOrLabel || '').toLowerCase()
+  if (l.includes('hold') || l.includes('pause') || l.includes('stay') || l.includes('rest')) return 'Hold'
+  if (l.includes('in') || l.includes('inhale')) return 'Inhale'
+  if (l.includes('out') || l.includes('ex') || l.includes('exhale')) return 'Exhale'
+  return 'Inhale'
 }
 
 export function migrateStoredLibrary(rawLibrary: any): { library: LibrarySettings; changed: boolean } {
@@ -239,21 +254,27 @@ export function migrateStoredLibrary(rawLibrary: any): { library: LibrarySetting
     let steps: { name: string; seconds: number }[] | undefined = undefined
     let media: { kind: 'youtube' | 'spotify'; url: string } | undefined = undefined
 
+
     if (raw.type === 'breathing') {
       type = 'breathing'
       if (Array.isArray(raw.phases) && raw.phases.length > 0) {
-        phases = raw.phases.slice(0, 8).map((p: any, idx: number) => {
-          let label = ''
+        phases = raw.phases.slice(0, 8).map((p: any) => {
+          let rawLabel = ''
           let seconds = 4
           if (Array.isArray(p)) {
             changed = true
-            label = String(p[0] || 'Phase').trim().slice(0, 24)
+            rawLabel = String(p[0] || '').trim()
             seconds = Math.max(1, Math.min(30, Number(p[1]) || 4))
           } else if (p && typeof p === 'object') {
-            label = String(p.label || 'Phase').trim().slice(0, 24)
+            rawLabel = String(p.label || '').trim()
             seconds = Math.max(1, Math.min(30, Number(p.seconds) || 4))
           }
-          return { label: label || 'Phase', seconds, kind: inferPhaseKind(label, idx, raw.phases.length) }
+          const mappedType = mapPhaseNameToType(rawLabel)
+          if (rawLabel !== mappedType) {
+            changed = true
+          }
+          const kind: PhaseKind = mappedType === 'Inhale' ? 'in' : mappedType === 'Hold' ? 'hold' : 'out'
+          return { label: mappedType, seconds, kind }
         })
       } else {
         phases = [{ label: 'Inhale', seconds: 4, kind: 'in' }, { label: 'Exhale', seconds: 6, kind: 'out' }]
@@ -304,7 +325,7 @@ export function migrateStoredLibrary(rawLibrary: any): { library: LibrarySetting
   // Handle defaults: if default pointed at one that no longer exists, clear default
   const rawDefaults = rawLibrary.defaults || {}
   let restActivityId = typeof rawDefaults.restActivityId === 'string' ? rawDefaults.restActivityId : null
-  const allIds = new Set([...builtInActivities.map((b) => b.id), ...migratedCustom.map((c) => c.id)])
+  const allIds = new Set(mergeWithBuiltins(migratedCustom).map((a) => a.id))
   if (restActivityId && !allIds.has(restActivityId)) {
     restActivityId = null
     changed = true
@@ -339,14 +360,15 @@ export function migrateStoredLibrary(rawLibrary: any): { library: LibrarySetting
   }
 }
 
-export function getFullLibrary(): { activities: Activity[]; defaultId?: string } {
+export function getFullLibrary(): LibraryPayload {
   const store = getStore()
   const lib = store.get('library')
   const custom = lib?.custom || []
   const defaultId = lib?.defaults?.restActivityId || undefined
   return {
-    activities: [...builtInActivities, ...custom],
-    defaultId
+    activities: mergeWithBuiltins(custom),
+    defaultId,
+    defaults: lib?.defaults
   }
 }
 
@@ -359,6 +381,7 @@ export function initStore(): Store<StoreSchema> {
         library: defaultLibrary,
         session: defaultSession,
         persistedSession: null,
+        draftConfig: null,
         prefs: defaultPrefs,
         lastBootTime: Date.now()
       }
@@ -412,3 +435,108 @@ export function getStore(): Store<StoreSchema> {
   }
   return storeInstance
 }
+
+export function getDraftConfig(): { config: SessionConfig; savedSlotChoices: (string | null)[] } {
+  const store = getStore()
+  const saved = store.get('draftConfig') as any
+  if (!saved || typeof saved !== 'object') {
+    // Defaults (30 / 5 / 2) are used ONLY when nothing has ever been saved
+    return {
+      config: {
+        focusMinutes: 30,
+        restMinutes: 5,
+        loopCount: 2,
+        restActivityIds: [null, null]
+      },
+      savedSlotChoices: [null, null]
+    }
+  }
+
+  const focusMinutes = typeof saved.focusMinutes === 'number' ? clamp(saved.focusMinutes, 5, 180) : 30
+  const restMinutes = typeof saved.restMinutes === 'number' ? clamp(saved.restMinutes, 1, 60) : 5
+  const loopCount = typeof saved.loopCount === 'number' ? clamp(saved.loopCount, 1, 8) : 2
+
+  const savedSlotChoices: (string | null)[] = Array.isArray(saved.savedSlotChoices)
+    ? saved.savedSlotChoices.map((id: any) => (typeof id === 'string' ? id : null))
+    : Array.isArray(saved.restActivityIds)
+    ? saved.restActivityIds.map((id: any) => (typeof id === 'string' ? id : null))
+    : []
+
+  const restActivityIds: (string | null)[] = Array.from(
+    { length: loopCount },
+    (_, i) => (typeof savedSlotChoices[i] === 'string' ? savedSlotChoices[i] : null)
+  )
+
+  return {
+    config: {
+      focusMinutes,
+      restMinutes,
+      loopCount,
+      restActivityIds
+    },
+    savedSlotChoices
+  }
+}
+
+export function saveDraftConfig(
+  draft: SessionConfig & { savedSlotChoices?: (string | null)[] }
+): { config: SessionConfig; savedSlotChoices: (string | null)[] } {
+  const store = getStore()
+  const focusMinutes = clamp(Math.round(draft.focusMinutes ?? 30), 5, 180)
+  const restMinutes = clamp(Math.round(draft.restMinutes ?? 5), 1, 60)
+  const loopCount = clamp(Math.round(draft.loopCount ?? 2), 1, 8)
+
+  const savedSlotChoices: (string | null)[] = Array.isArray(draft.savedSlotChoices)
+    ? [...draft.savedSlotChoices]
+    : []
+
+  if (Array.isArray(draft.restActivityIds)) {
+    draft.restActivityIds.forEach((id, idx) => {
+      if (idx < 8) {
+        savedSlotChoices[idx] = typeof id === 'string' ? id : (savedSlotChoices[idx] ?? null)
+      }
+    })
+  }
+
+  const restActivityIds: (string | null)[] = Array.from(
+    { length: loopCount },
+    (_, i) => (typeof savedSlotChoices[i] === 'string' ? savedSlotChoices[i] : null)
+  )
+
+  const toSave = {
+    focusMinutes,
+    restMinutes,
+    loopCount,
+    restActivityIds,
+    savedSlotChoices
+  }
+
+  store.set('draftConfig', toSave)
+
+  // Also sync to prefs for backwards compatibility
+  store.set('prefs.focusMinutes', focusMinutes)
+  store.set('prefs.restMinutes', restMinutes)
+  store.set('prefs.loopCount', loopCount)
+  store.set('prefs.restActivityIds', restActivityIds)
+
+  return {
+    config: {
+      focusMinutes,
+      restMinutes,
+      loopCount,
+      restActivityIds
+    },
+    savedSlotChoices
+  }
+}
+
+export function pruneDraftSlotChoicesOnStart(loopCount: number): void {
+  const store = getStore()
+  const saved = store.get('draftConfig') as any
+  if (saved && typeof saved === 'object') {
+    const rawChoices = Array.isArray(saved.savedSlotChoices) ? saved.savedSlotChoices : []
+    const pruned = rawChoices.slice(0, loopCount)
+    store.set('draftConfig.savedSlotChoices', pruned)
+  }
+}
+

@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useMemo } from 'react'
+import React, { useEffect, useState, useMemo, useRef } from 'react'
 import {
   Activity,
   SessionSnapshot,
@@ -29,6 +29,11 @@ export function OverlayScreen({ mode }: OverlayScreenProps): React.JSX.Element {
   const [settings, setSettings] = useState<AppSettings | null>(null)
   const [soundPacks, setSoundPacks] = useState<SoundPack[]>([])
   const [isExiting, setIsExiting] = useState<boolean>(false)
+
+  // Ref to freeze the last rendered view during 1.1s closing fade
+  const lastActiveContentRef = useRef<React.ReactNode>(null)
+  const snapshotRef = useRef<SessionSnapshot | null>(null)
+  snapshotRef.current = snapshot
 
   // Helper to access APIs
   const getApi = () => window.revive || window.still
@@ -66,12 +71,35 @@ export function OverlayScreen({ mode }: OverlayScreenProps): React.JSX.Element {
       setIsExiting(true)
     })
 
-    // 5. Global Escape key listener to exit overlay
+    // 5. Global Escape key listener to exit overlay & dev-only Ctrl+Shift+Q
     const handleKeyDown = (e: KeyboardEvent) => {
+      if ((e.ctrlKey || e.metaKey) && e.shiftKey && e.key.toLowerCase() === 'q') {
+        e.preventDefault()
+        e.stopPropagation()
+        const api = getApi()
+        api?.session?.devResetToIdle?.()
+        return
+      }
       if (e.key === 'Escape') {
         e.preventDefault()
         e.stopPropagation()
         handleResumeFocus()
+        return
+      }
+      if (e.key === ' ' || e.key === 'Enter') {
+        const snap = snapshotRef.current
+        if (snap?.phase === 'transition-to-rest') {
+          e.preventDefault()
+          e.stopPropagation()
+          handleBeginRestNow()
+          return
+        }
+        if (snap?.phase === 'transition-to-focus') {
+          e.preventDefault()
+          e.stopPropagation()
+          handleBackToWork()
+          return
+        }
       }
     }
     window.addEventListener('keydown', handleKeyDown, true)
@@ -124,6 +152,22 @@ export function OverlayScreen({ mode }: OverlayScreenProps): React.JSX.Element {
     }
   }
 
+  const handleBackToWork = async (): Promise<void> => {
+    const api = getApi()
+    if (api?.session?.backToWork) {
+      const updated = await api.session.backToWork()
+      setSnapshot(updated)
+    }
+  }
+
+  const handleBeginRestNow = async (): Promise<void> => {
+    const api = getApi()
+    if (api?.session?.beginRestNow) {
+      const updated = await api.session.beginRestNow()
+      setSnapshot(updated)
+    }
+  }
+
   const handleSelectActivity = async (activity: Activity): Promise<void> => {
     const api = getApi()
     if (snapshot && api?.session?.setRestActivity) {
@@ -144,6 +188,296 @@ export function OverlayScreen({ mode }: OverlayScreenProps): React.JSX.Element {
   const isWindowed =
     urlParams.get('windowMode') === 'window' ||
     (settings?.takeover?.windowMode ?? 'window') === 'window'
+
+  // Compute active content
+  const renderContent = (): React.ReactNode => {
+    if (!snapshot) return null
+
+    if (isSessionComplete) {
+      return (
+        <SessionComplete
+          onAnotherOne={handleAnotherOne}
+          onDoneForNow={handleDoneForNow}
+        />
+      )
+    }
+
+    // 1. FOCUS -> REST INTRO SCREEN (transition-to-rest)
+    if (snapshot.phase === 'transition-to-rest') {
+      const secondsRemaining = Math.max(1, Math.ceil(snapshot.remainingMs / 1000))
+      const activityTitle = currentActivity?.name || 'Rest & Recharge'
+      const roundLabel = `Rest ${snapshot.loopIndex + 1} of ${snapshot.loopCount}`
+
+      return (
+        <div className="relative w-full h-full flex flex-col justify-between items-center select-none z-10 font-mono px-8 py-8 md:px-14 md:py-10">
+          {/* Subtle Top Bar */}
+          <header className="w-full flex items-center justify-between z-20">
+            <span className="text-[11px] tracking-[0.2em] uppercase text-white/30 font-mono">
+              Revive
+            </span>
+            <span className="text-[11px] tracking-[0.18em] uppercase text-white/40 font-mono">
+              {roundLabel}
+            </span>
+          </header>
+
+          {/* Meditative Centerpiece */}
+          <main className="flex-1 flex flex-col items-center justify-center max-w-xl w-full px-6 text-center z-20 animate-fade-in my-auto py-2">
+            <span className="text-[11px] tracking-[0.25em] uppercase text-[#AFDDFF]/70 font-mono mb-2">
+              Time to unwind
+            </span>
+
+            <h1
+              className="text-4xl md:text-6xl text-white font-light tracking-wide my-2 leading-tight"
+              style={{ fontFamily: 'var(--font-display)' }}
+            >
+              {activityTitle}
+            </h1>
+
+            {currentActivity?.tagline && (
+              <p className="text-xs md:text-sm text-white/45 tracking-wider font-mono max-w-md my-1 font-light">
+                {currentActivity.tagline}
+              </p>
+            )}
+
+            {/* Glowing Ethereal Countdown Orb */}
+            <div className="relative w-20 h-20 flex items-center justify-center my-8">
+              <div className="absolute inset-0 rounded-full border border-[#AFDDFF]/20 animate-ping opacity-25" />
+              <div className="absolute inset-0 rounded-full border border-[#AFDDFF]/35 shadow-[0_0_30px_rgba(175,221,255,0.2)] bg-[rgba(175,221,255,0.03)]" />
+              <span
+                className="text-3xl font-light text-white font-mono tabular-nums tracking-normal z-10"
+                style={{ fontFamily: 'var(--font-display)' }}
+              >
+                {secondsRemaining}
+              </span>
+            </div>
+
+            {/* Action pill */}
+            <button
+              type="button"
+              onClick={handleBeginRestNow}
+              className="group flex items-center gap-2.5 px-6 py-2.5 rounded-full border border-[rgba(175,221,255,0.3)] bg-[rgba(175,221,255,0.08)] hover:bg-[#AFDDFF] hover:text-black text-[#AFDDFF] text-xs font-mono tracking-[0.16em] uppercase transition-all duration-300 cursor-pointer shadow-[0_0_16px_rgba(175,221,255,0.12)] hover:shadow-[0_0_28px_rgba(175,221,255,0.4)] active:scale-95"
+            >
+              <span>Begin now</span>
+              <span className="text-[10px] opacity-60 group-hover:opacity-100 font-mono">↵</span>
+            </button>
+          </main>
+
+          {/* Footer */}
+          <footer className="w-full flex items-center justify-center z-20">
+            <span className="text-[11px] text-white/30 tracking-[0.12em] select-none font-mono">
+              Press ESC or Space
+            </span>
+          </footer>
+        </div>
+      )
+    }
+
+    // 2. REST -> FOCUS TRANSITION SCREEN (transition-to-focus)
+    if (snapshot.phase === 'transition-to-focus') {
+      const secondsRemaining = Math.max(1, Math.ceil(snapshot.remainingMs / 1000))
+      const roundLabel = `Round ${snapshot.loopIndex + 1} of ${snapshot.loopCount}`
+
+      return (
+        <div className="relative w-full h-full flex flex-col justify-between items-center select-none z-10 font-mono px-8 py-8 md:px-14 md:py-10">
+          <header className="w-full flex items-center justify-between z-20">
+            <span className="text-[11px] tracking-[0.2em] uppercase text-white/30 font-mono">
+              Revive
+            </span>
+            <span className="text-[11px] tracking-[0.18em] uppercase text-white/40 font-mono">
+              {roundLabel}
+            </span>
+          </header>
+
+          <main className="flex-1 flex flex-col items-center justify-center max-w-xl w-full px-6 text-center z-20 animate-fade-in my-auto py-2">
+            <span className="text-[11px] tracking-[0.25em] uppercase text-[#AFDDFF]/70 font-mono mb-2">
+              Next session
+            </span>
+
+            {snapshot.leftOffNote && snapshot.leftOffNote.trim() ? (
+              <div className="my-2 max-w-xl">
+                <h1
+                  className="text-2xl md:text-4xl text-white font-light tracking-wide leading-relaxed italic"
+                  style={{ fontFamily: 'var(--font-display)' }}
+                >
+                  "{snapshot.leftOffNote}"
+                </h1>
+                <span className="text-[11px] tracking-[0.18em] uppercase text-white/40 font-mono block mt-2">
+                  Where you left off
+                </span>
+              </div>
+            ) : (
+              <div className="my-2">
+                <h1
+                  className="text-4xl md:text-6xl text-white font-light tracking-wide leading-tight"
+                  style={{ fontFamily: 'var(--font-display)' }}
+                >
+                  Ready to focus
+                </h1>
+                <p className="text-xs md:text-sm text-white/45 tracking-wider font-mono mt-1 font-light">
+                  Take a breath and settle in
+                </p>
+              </div>
+            )}
+
+            {/* Glowing Ethereal Countdown Orb */}
+            <div className="relative w-20 h-20 flex items-center justify-center my-8">
+              <div className="absolute inset-0 rounded-full border border-[#AFDDFF]/20 animate-ping opacity-25" />
+              <div className="absolute inset-0 rounded-full border border-[#AFDDFF]/35 shadow-[0_0_30px_rgba(175,221,255,0.2)] bg-[rgba(175,221,255,0.03)]" />
+              <span
+                className="text-3xl font-light text-white font-mono tabular-nums tracking-normal z-10"
+                style={{ fontFamily: 'var(--font-display)' }}
+              >
+                {secondsRemaining}
+              </span>
+            </div>
+
+            <button
+              type="button"
+              onClick={handleBackToWork}
+              className="group flex items-center gap-2.5 px-6 py-2.5 rounded-full border border-[rgba(175,221,255,0.3)] bg-[rgba(175,221,255,0.08)] hover:bg-[#AFDDFF] hover:text-black text-[#AFDDFF] text-xs font-mono tracking-[0.16em] uppercase transition-all duration-300 cursor-pointer shadow-[0_0_16px_rgba(175,221,255,0.12)] hover:shadow-[0_0_28px_rgba(175,221,255,0.4)] active:scale-95"
+            >
+              <span>Resume now</span>
+              <span className="text-[10px] opacity-60 group-hover:opacity-100 font-mono">↵</span>
+            </button>
+          </main>
+
+          <footer className="w-full flex items-center justify-center z-20">
+            <span className="text-[11px] text-white/30 tracking-[0.12em] select-none font-mono">
+              Press ESC or Space
+            </span>
+          </footer>
+        </div>
+      )
+    }
+
+    // 3. EXPLICIT ACTIVITY PICKER (Rendered ONLY if phase === 'choose-activity', NEVER as fallback!)
+    if ((snapshot.phase as any) === 'choose-activity') {
+      return (
+        <ActivityPicker
+          activities={library?.activities || []}
+          snapshot={snapshot}
+          onSelectActivity={handleSelectActivity}
+          onResumeFocus={handleResumeFocus}
+        />
+      )
+    }
+
+    // 4. REST ACTIVITY PLAYER
+    const canSnoozeSetting = settings?.takeover?.allowSnooze ?? true
+    if (currentActivity) {
+      if (currentActivity.media?.kind === 'youtube') {
+        return (
+          <VideoPlayer
+            activity={currentActivity}
+            snapshot={snapshot}
+            onResumeFocus={handleResumeFocus}
+            canSnooze={false}
+          />
+        )
+      }
+      if (currentActivity.media?.kind === 'spotify') {
+        return (
+          <SpotifyPlayer
+            activity={currentActivity}
+            snapshot={snapshot}
+            onSnooze={handleSnooze}
+            onResumeFocus={handleResumeFocus}
+            canSnooze={canSnoozeSetting}
+          />
+        )
+      }
+      if (currentActivity.type === 'routine') {
+        return (
+          <RoutinePlayer
+            activity={currentActivity}
+            snapshot={snapshot}
+            onResumeFocus={handleResumeFocus}
+          />
+        )
+      }
+      if (currentActivity.type === 'breathing') {
+        return (
+          <BreathingPlayer
+            activity={currentActivity}
+            snapshot={snapshot}
+            onSnooze={handleSnooze}
+            onResumeFocus={handleResumeFocus}
+            canSnooze={canSnoozeSetting}
+          />
+        )
+      }
+      return (
+        <CustomPlayer
+          activity={currentActivity}
+          snapshot={snapshot}
+          onSnooze={handleSnooze}
+          onResumeFocus={handleResumeFocus}
+          canSnooze={canSnoozeSetting}
+        />
+      )
+    }
+
+    // 5. Rest without activity (peaceful rest screen, NEVER ActivityPicker)
+    const remainingSec = Math.max(0, Math.ceil(snapshot.remainingMs / 1000))
+    const mins = Math.floor(remainingSec / 60)
+    const secs = remainingSec % 60
+    const timeFormatted = `${String(mins).padStart(2, '0')}:${String(secs).padStart(2, '0')}`
+    const progressPct = snapshot.totalMs > 0 ? Math.min(100, Math.max(0, ((snapshot.totalMs - snapshot.remainingMs) / snapshot.totalMs) * 100)) : 0
+
+    return (
+      <div className="relative w-full h-full flex flex-col justify-between items-center select-none z-10 font-mono py-6">
+        <header className="w-full flex items-center justify-between px-8 z-20">
+          <div className="flex items-center gap-3">
+            <span className="text-[11px] tracking-[0.14em] uppercase text-[var(--muted,#8a99a8)] font-mono">
+              Rest {snapshot.loopIndex + 1} of {snapshot.loopCount}
+            </span>
+            <span className="text-[11px] text-white/30 font-mono">·</span>
+            <span className="text-[12px] text-[var(--text,#ffffff)] tracking-[0.08em] font-medium font-mono">
+              Quiet rest
+            </span>
+          </div>
+          <div className="flex items-center gap-3 font-mono">
+            <span className="w-2 h-2 rounded-full bg-[var(--accent,#afddff)] shadow-[0_0_8px_var(--accent,#afddff)] animate-pulse" />
+            <span className="text-[12px] text-[var(--text,#ffffff)] tracking-[0.1em] tabular-nums">
+              {timeFormatted}
+            </span>
+          </div>
+        </header>
+
+        <main className="flex-1 flex flex-col items-center justify-center text-center z-20 animate-fade-in font-mono my-auto">
+          <h1 className="text-3xl md:text-4xl text-white font-medium mb-3" style={{ fontFamily: 'var(--font-display)' }}>
+            Time to rest
+          </h1>
+          <div className="text-xs text-[#AFDDFF]/70 tracking-widest uppercase mb-4">
+            Leave the screen. Relax your eyes.
+          </div>
+        </main>
+
+        <footer className="w-full flex flex-col z-20">
+          <div className="w-full flex items-center justify-between px-8 py-3.5">
+            <span className="text-[11px] text-[var(--muted,#8a99a8)] tracking-[0.08em] select-none font-mono">
+              Press ESC to escape.
+            </span>
+          </div>
+          <div className="w-full h-[2px] bg-[rgba(255,255,255,0.08)] overflow-hidden">
+            <div
+              className="h-full bg-[var(--accent,#afddff)] transition-all duration-300 ease-out shadow-[0_0_8px_var(--accent,#afddff)]"
+              style={{ width: `${progressPct}%` }}
+            />
+          </div>
+        </footer>
+      </div>
+    )
+  }
+
+  // Freeze content if overlay is exiting or marked closing
+  const isClosingState = isExiting || snapshot?.isClosing || snapshot?.phase === 'closing'
+  if (!isClosingState) {
+    lastActiveContentRef.current = renderContent()
+  }
+  const contentToDisplay = isClosingState
+    ? (lastActiveContentRef.current || renderContent())
+    : renderContent()
 
   return (
     <div
@@ -186,58 +520,10 @@ export function OverlayScreen({ mode }: OverlayScreenProps): React.JSX.Element {
       {/* ~40 Twinkling Faint Stars */}
       <Stars />
 
-      {/* Render Player Content or Session Complete on Primary Display */}
+      {/* Render Content on Primary Display */}
       {!isBackdropOnly && snapshot && (
         <div className={`relative w-full h-full z-10 flex items-center justify-center ${isWindowed ? 'pt-[42px]' : ''}`}>
-          {isSessionComplete ? (
-            <SessionComplete
-              onAnotherOne={handleAnotherOne}
-              onDoneForNow={handleDoneForNow}
-            />
-          ) : library ? (
-            currentActivity ? (
-              <>
-                {currentActivity.media?.kind === 'youtube' ? (
-                  <VideoPlayer
-                    activity={currentActivity}
-                    snapshot={snapshot}
-                    onResumeFocus={handleResumeFocus}
-                  />
-                ) : currentActivity.media?.kind === 'spotify' ? (
-                  <SpotifyPlayer
-                    activity={currentActivity}
-                    snapshot={snapshot}
-                    onResumeFocus={handleResumeFocus}
-                  />
-                ) : currentActivity.type === 'routine' ? (
-                  <RoutinePlayer
-                    activity={currentActivity}
-                    snapshot={snapshot}
-                    onResumeFocus={handleResumeFocus}
-                  />
-                ) : currentActivity.type === 'breathing' ? (
-                  <BreathingPlayer
-                    activity={currentActivity}
-                    snapshot={snapshot}
-                    onResumeFocus={handleResumeFocus}
-                  />
-                ) : (
-                  <CustomPlayer
-                    activity={currentActivity}
-                    snapshot={snapshot}
-                    onResumeFocus={handleResumeFocus}
-                  />
-                )}
-              </>
-            ) : (
-              <ActivityPicker
-                activities={library.activities || []}
-                snapshot={snapshot}
-                onSelectActivity={handleSelectActivity}
-                onResumeFocus={handleResumeFocus}
-              />
-            )
-          ) : null}
+          {contentToDisplay}
         </div>
       )}
     </div>

@@ -1,5 +1,5 @@
 import { describe, it, expect, vi } from 'vitest'
-import { SessionEngine, Clock, TRANSITION_DURATION_MS } from '../sessionEngine'
+import { SessionEngine, Clock, INTRO_TRANSITION_MS } from '../sessionEngine'
 import { defaultSettings, clampAndMergeSettings } from '../store'
 import { AppSettings, SessionSnapshot } from '../../shared/types'
 
@@ -137,7 +137,7 @@ describe('Prompt 6: Session Engine & Hardening Tests', () => {
     expect(engine.getSnapshot().phase).toBe('transition-to-rest')
 
     // Advance time through transition and rest
-    clock.advanceTime(TRANSITION_DURATION_MS + 60000)
+    clock.advanceTime(INTRO_TRANSITION_MS + 60000)
     expect(warningFiredCount).toBe(0)
   })
 
@@ -151,7 +151,7 @@ describe('Prompt 6: Session Engine & Hardening Tests', () => {
     // 2 loops, 10m focus, 5m rest
     engine.start({ focusMinutes: 10, restMinutes: 5, loopCount: 2 })
     // Complete focus -> enter rest
-    clock.advanceTime(10 * 60 * 1000 + TRANSITION_DURATION_MS)
+    clock.advanceTime(10 * 60 * 1000 + INTRO_TRANSITION_MS)
     expect(engine.getSnapshot().phase).toBe('rest')
     expect(engine.getSnapshot().loopIndex).toBe(0)
 
@@ -173,9 +173,9 @@ describe('Prompt 6: Session Engine & Hardening Tests', () => {
     })
 
     engine.start({ focusMinutes: 5, restMinutes: 2, loopCount: 1 })
-    // Advance to session complete
-    clock.advanceTime(5 * 60 * 1000 + TRANSITION_DURATION_MS + 2 * 60 * 1000)
-    expect(engine.getSnapshot().phase).toBe('session-complete')
+    // Advance to session complete (idle)
+    clock.advanceTime(5 * 60 * 1000 + INTRO_TRANSITION_MS + 2 * 60 * 1000)
+    expect(engine.getSnapshot().phase).toBe('idle')
 
     // Another one: starts focus immediately with the same config
     const anotherSnap = engine.anotherOne()
@@ -184,8 +184,8 @@ describe('Prompt 6: Session Engine & Hardening Tests', () => {
     expect(anotherSnap.config.focusMinutes).toBe(5)
 
     // Complete again
-    clock.advanceTime(5 * 60 * 1000 + TRANSITION_DURATION_MS + 2 * 60 * 1000)
-    expect(engine.getSnapshot().phase).toBe('session-complete')
+    clock.advanceTime(5 * 60 * 1000 + INTRO_TRANSITION_MS + 2 * 60 * 1000)
+    expect(engine.getSnapshot().phase).toBe('idle')
 
     // Done for now: returns to idle
     const doneSnap = engine.doneForNow()
